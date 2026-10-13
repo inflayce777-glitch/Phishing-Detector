@@ -1,6 +1,7 @@
 @echo off
 chcp 65001 > nul
 cd /d "%~dp0"
+taskkill /f /im ngrok.exe >nul 2>&1
 echo ====================================================================
 echo   Phishing Detector: AI Backend + Permanent Ngrok Tunnel
 echo ====================================================================

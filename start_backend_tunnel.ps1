@@ -3,6 +3,7 @@ Write-Host "====================================================================
 Write-Host "   Phishing Detector: AI Backend + Permanent Ngrok Tunnel" -ForegroundColor Cyan
 Write-Host "====================================================================" -ForegroundColor Cyan
 Write-Host ""
+Stop-Process -Name "ngrok" -Force -ErrorAction SilentlyContinue
 
 $rootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $pythonPath = Join-Path $rootDir ".venv\Scripts\python.exe"
