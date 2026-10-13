@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+scikit-learn
+pandas
+joblib
+xgboost
+datasets
+sentence-transformers

@@ -1,0 +1,56 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js & Build
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# Python virtual environment & cache
+**/__pycache__/
+*.py[cod]
+*$py.class
+**/.venv/
+**/venv/
+**/ENV/
+
+# Local databases & logs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files & secrets (NEVER commit secrets!)
+.env
+.env.*
+!.env.example
+
+# Large raw dataset files (to prevent GitHub 100MB rejection)
+datasets/
+!datasets/D4_evaluation_report.json
+!datasets/README.md
+
+# Scratch scripts
+scratch.*
+scratch/
+test-*.js
+
+# OS files
+.DS_Store
+Thumbs.db
+*.pem

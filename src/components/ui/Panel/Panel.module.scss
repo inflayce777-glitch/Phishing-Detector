@@ -1,0 +1,33 @@
+.panel {
+  background: var(--fx-bg-panel);
+  border: 1px solid var(--fx-line);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.head {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--fx-line);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-family: var(--fx-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fx-muted);
+  font-weight: bold;
+}
+
+.body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

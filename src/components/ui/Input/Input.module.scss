@@ -1,0 +1,32 @@
+.input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(108, 229, 220, 0.2);
+  color: var(--fx-text);
+  font-family: var(--fx-mono);
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+
+  &::placeholder {
+    color: var(--fx-muted);
+  }
+
+  &:focus {
+    border-color: var(--fx-cyan);
+    background: rgba(108, 229, 220, 0.05);
+    box-shadow: 0 0 10px rgba(108, 229, 220, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.textarea {
+  min-height: 150px;
+  resize: vertical;
+}

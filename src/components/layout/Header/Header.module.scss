@@ -1,0 +1,32 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: rgba(11, 16, 19, 0.9);
+  border-bottom: 1px solid var(--fx-line);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mark {
+  color: var(--fx-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-family: var(--fx-mono);
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  font-size: 14px;
+}

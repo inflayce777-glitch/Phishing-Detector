@@ -1,0 +1,16 @@
+.container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 40px 34px;
+}
+
+.shell {
+  width: 100%;
+  max-width: 1540px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
