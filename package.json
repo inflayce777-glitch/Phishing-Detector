@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:clean": "node scripts/clear_database.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
