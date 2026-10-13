@@ -50,18 +50,7 @@ try:
         embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device, local_files_only=True)
     except Exception:
         embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
-    
-    # If running on CPU (e.g. Render 512MB RAM tier), dynamically quantize Linear layers to INT8
-    # This reduces RAM consumption by ~60% (from 650MB down to ~180MB) preventing Render OOM!
-    if device == "cpu":
-        import gc
-        embedder[0].auto_model = torch.quantization.quantize_dynamic(
-            embedder[0].auto_model, {torch.nn.Linear}, dtype=torch.qint8
-        )
-        gc.collect()
-        print("Model dynamically quantized to INT8 (Ultra-low RAM mode <200MB)!")
-
-    print("Multilingual Sentence Transformer loaded successfully!")
+    print("Multilingual Sentence Transformer loaded successfully (Offline/Local)!")
 except Exception as e:
     print(f"Error loading SentenceTransformer: {e}")
 
@@ -394,6 +383,4 @@ async def analyze_texts(request: AnalysisRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 10000))
-    host = "0.0.0.0" if os.environ.get("RENDER") or os.environ.get("PORT") else "127.0.0.1"
-    uvicorn.run("main:app", host=host, port=port, reload=False)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
