@@ -2,8 +2,6 @@ fastapi
 uvicorn
 pydantic
 scikit-learn
-pandas
+scipy
 joblib
-xgboost
-datasets
 sentence-transformers
