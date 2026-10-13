@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000';
+
 export async function GET() {
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/health', {
+    const response = await fetch(`${PYTHON_BACKEND_URL}/api/health`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store'
@@ -32,7 +34,7 @@ export async function POST(request) {
     const body = await request.json();
     
     // Call the Python backend
-    const response = await fetch('http://127.0.0.1:8000/api/analyze', {
+    const response = await fetch(`${PYTHON_BACKEND_URL}/api/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)

@@ -9,6 +9,8 @@ const URLHAUS_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const abuseIpCache = new Map();
 const ABUSEIP_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000';
+
 export async function POST(request) {
   try {
     const { urls, ips } = await request.json();
@@ -66,7 +68,7 @@ export async function POST(request) {
 
         // 3. Query Python ML URL model (Grambeddings 800k trained)
         try {
-          const mlRes = await fetch('http://127.0.0.1:8000/api/analyze', {
+          const mlRes = await fetch(`${PYTHON_BACKEND_URL}/api/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ texts: [cleanUrl], urls: [cleanUrl] }),

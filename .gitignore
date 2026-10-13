@@ -54,3 +54,4 @@ test-*.js
 .DS_Store
 Thumbs.db
 *.pem
+cloudflared.exe
