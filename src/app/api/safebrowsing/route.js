@@ -70,7 +70,10 @@ export async function POST(request) {
         try {
           const mlRes = await fetch(`${PYTHON_BACKEND_URL}/api/analyze`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ texts: [cleanUrl], urls: [cleanUrl] }),
             signal: AbortSignal.timeout(1500)
           });

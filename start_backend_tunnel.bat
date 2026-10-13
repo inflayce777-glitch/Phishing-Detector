@@ -2,7 +2,7 @@
 chcp 65001 > nul
 cd /d "%~dp0"
 echo ====================================================================
-echo   Phishing Detector: AI Backend + Cloudflare Tunnel
+echo   Phishing Detector: AI Backend + Permanent Ngrok Tunnel
 echo ====================================================================
 echo.
 
@@ -12,10 +12,12 @@ start "Python-ML-Backend" cmd /k "cd /d ""%~dp0python_backend"" && ""%~dp0.venv\
 echo Waiting 3 seconds for model initialization...
 timeout /t 3 /nobreak > nul
 
-echo [2/2] Launching Cloudflare HTTPS Tunnel...
-start "Cloudflare-Tunnel" cmd /k "cd /d ""%~dp0"" && cloudflared.exe tunnel --url http://127.0.0.1:8000"
+echo [2/2] Launching Permanent Ngrok Tunnel (https://anatomy-portly-yard.ngrok-free.dev)...
+start "Ngrok-Tunnel" cmd /k "cd /d ""%~dp0"" && ngrok.exe http 8000 --url https://anatomy-portly-yard.ngrok-free.dev"
 
 echo.
 echo ====================================================================
-echo   Services are running! Copy your https://...trycloudflare.com URL
+echo   Live Permanent Endpoint:
+echo   https://anatomy-portly-yard.ngrok-free.dev
+echo   (This URL NEVER changes across restarts)
 echo ====================================================================

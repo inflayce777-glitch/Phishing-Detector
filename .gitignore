@@ -55,3 +55,5 @@ test-*.js
 Thumbs.db
 *.pem
 cloudflared.exe
+ngrok.exe
+ngrok.zip

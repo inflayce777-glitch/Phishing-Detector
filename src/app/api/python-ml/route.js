@@ -6,7 +6,10 @@ export async function GET() {
   try {
     const response = await fetch(`${PYTHON_BACKEND_URL}/api/health`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
       cache: 'no-store'
     });
 
@@ -36,7 +39,10 @@ export async function POST(request) {
     // Call the Python backend
     const response = await fetch(`${PYTHON_BACKEND_URL}/api/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
       body: JSON.stringify(body)
     });
 
