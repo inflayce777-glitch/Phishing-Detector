@@ -27,6 +27,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!auth/signin|api/auth|api/rdap|api/safebrowsing|api/python-ml|_next/static|_next/image|favicon.ico).*)",
+    "/((?!auth/signin|api/health|api/auth|api/rdap|api/safebrowsing|api/python-ml|_next/static|_next/image|favicon.ico).*)",
   ],
 };
