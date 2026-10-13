@@ -32,10 +32,29 @@ app.add_middleware(
 )
 
 # -------------------------------------------------------------
-# HARDWARE & MODELS INITIALIZATION
+# HARDWARE & MODELS INITIALIZATION (CROSS-PLATFORM: CUDA / MPS / CPU)
 # -------------------------------------------------------------
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Initializing AI Models on Device: {device} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
+import platform
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def get_model_path(filename: str) -> str:
+    if os.path.exists(filename):
+        return filename
+    full_path = os.path.join(BASE_DIR, filename)
+    return full_path if os.path.exists(full_path) else filename
+
+if torch.cuda.is_available():
+    device = "cuda"
+    gpu_name = torch.cuda.get_device_name(0)
+elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    device = "mps"
+    gpu_name = f"Apple Silicon GPU ({platform.processor() or 'MPS'})"
+else:
+    device = "cpu"
+    gpu_name = "CPU"
+
+print(f"Initializing AI Models on Device: {device} ({gpu_name}) [OS: {platform.system()}]")
 
 embedder = None
 text_model = None
@@ -50,33 +69,36 @@ try:
         embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device, local_files_only=True)
     except Exception:
         embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
-    print("Multilingual Sentence Transformer loaded successfully (Offline/Local)!")
+    print(f"Multilingual Sentence Transformer loaded successfully on {device}!")
 except Exception as e:
     print(f"Error loading SentenceTransformer: {e}")
 
 # 2. Text Classification Model (D4 Multilingual Model with fallback)
 try:
-    if os.path.exists("multilingual_text_model.pkl"):
-        text_model = joblib.load("multilingual_text_model.pkl")
+    model_file = get_model_path("multilingual_text_model.pkl")
+    if os.path.exists(model_file):
+        text_model = joblib.load(model_file)
         print("D4 Multilingual Text Model loaded (multilingual_text_model.pkl)!")
-    elif os.path.exists("unified_model.pkl"):
-        text_model = joblib.load("unified_model.pkl")
+    elif os.path.exists(get_model_path("unified_model.pkl")):
+        text_model = joblib.load(get_model_path("unified_model.pkl"))
         print("Unified Model loaded (unified_model.pkl)!")
 except Exception as e:
     print(f"Error loading Text Model: {e}")
 
 # 3. URL Classification Model (D4 Grambeddings Model)
 try:
-    if os.path.exists("url_model.pkl"):
-        url_bundle = joblib.load("url_model.pkl")
+    url_file = get_model_path("url_model.pkl")
+    if os.path.exists(url_file):
+        url_bundle = joblib.load(url_file)
         print("D4 URL Classifier loaded (url_model.pkl)!")
 except Exception as e:
     print(f"Error loading URL Model: {e}")
 
 # 4. Webpage Classification Model (D4 Phish360 Model)
 try:
-    if os.path.exists("webpage_model.pkl"):
-        webpage_model = joblib.load("webpage_model.pkl")
+    webpage_file = get_model_path("webpage_model.pkl")
+    if os.path.exists(webpage_file):
+        webpage_model = joblib.load(webpage_file)
         print("D4 Webpage Classifier loaded (webpage_model.pkl)!")
 except Exception as e:
     print(f"Error loading Webpage Model: {e}")
@@ -119,12 +141,13 @@ if embedder is not None:
         print(f"Error precomputing concept embeddings: {e}")
 
 # 6. Spam DB (if present)
-if os.path.exists("spam_db.pt"):
+spam_file = get_model_path("spam_db.pt")
+if os.path.exists(spam_file):
     try:
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            spam_db = torch.load("spam_db.pt", map_location=device, weights_only=False)
+            spam_db = torch.load(spam_file, map_location=device, weights_only=False)
         if isinstance(spam_db.get('embeddings'), torch.Tensor):
             spam_db['embeddings'] = spam_db['embeddings'].to(device)
             spam_db['embeddings_norm'] = torch.nn.functional.normalize(spam_db['embeddings'], p=2, dim=1)
@@ -216,18 +239,28 @@ async def root():
 @app.get("/api/health")
 async def health_check():
     report = {}
-    report_path = "../datasets/D4_evaluation_report.json"
-    if os.path.exists(report_path):
-        try:
-            with open(report_path, "r", encoding="utf-8") as f:
-                report = json.load(f)
-        except Exception:
-            pass
+    report_candidates = [
+        os.path.join(BASE_DIR, "../datasets/D4_evaluation_report.json"),
+        os.path.join(BASE_DIR, "datasets/D4_evaluation_report.json"),
+        os.path.join(BASE_DIR, "D4_evaluation_report.json"),
+        "../datasets/D4_evaluation_report.json",
+        "datasets/D4_evaluation_report.json"
+    ]
+    for r_path in report_candidates:
+        if os.path.exists(r_path):
+            try:
+                with open(r_path, "r", encoding="utf-8") as f:
+                    report = json.load(f)
+                break
+            except Exception:
+                pass
             
     return {
         "status": "online",
         "device": str(device),
-        "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        "gpu_name": gpu_name,
+        "os": platform.system(),
+        "platform": platform.platform(),
         "models": {
             "multilingual_text": text_model is not None,
             "url_classifier": url_bundle is not None,
@@ -383,4 +416,6 @@ async def analyze_texts(request: AnalysisRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run("main:app", host=host, port=port, reload=False)
