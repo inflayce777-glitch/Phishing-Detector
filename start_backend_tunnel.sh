@@ -59,4 +59,4 @@ echo "===================================================================="
 
 trap "kill $BACKEND_PID 2>/dev/null || true; pkill -f ngrok || true; exit 0" SIGINT SIGTERM
 
-"$NGROK_BIN" http 8000 --url https://anatomy-portly-yard.ngrok-free.dev
+"$NGROK_BIN" http 127.0.0.1:8000 --url https://anatomy-portly-yard.ngrok-free.dev

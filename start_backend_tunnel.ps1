@@ -27,14 +27,22 @@ if ($wtError) {
     Start-Process cmd.exe -ArgumentList "/k", "cd /d `"$backendDir`" && `"$pythonPath`" main.py"
 }
 
-Start-Sleep -Seconds 4
+Write-Host "Waiting for Python ML Backend to load models..." -ForegroundColor Yellow
+for ($i = 0; $i -lt 30; $i++) {
+    Start-Sleep -Seconds 1
+    try {
+        $res = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction SilentlyContinue
+        if ($res.StatusCode -eq 200) { break }
+    } catch {}
+}
 
+Write-Host "Python ML Backend is READY and responding!" -ForegroundColor Green
 Write-Host "[2/2] Launching Permanent Ngrok Tunnel (https://anatomy-portly-yard.ngrok-free.dev)..." -ForegroundColor Green
-Start-Process wt.exe -ArgumentList "new-tab", "--title", "Ngrok Tunnel", "-d", "$rootDir", "$ngrokPath", "http", "8000", "--url", "https://anatomy-portly-yard.ngrok-free.dev" -ErrorAction SilentlyContinue `
+Start-Process wt.exe -ArgumentList "new-tab", "--title", "Ngrok Tunnel", "-d", "$rootDir", "$ngrokPath", "http", "127.0.0.1:8000", "--url", "https://anatomy-portly-yard.ngrok-free.dev" -ErrorAction SilentlyContinue `
     -ErrorVariable wtError2
 
 if ($wtError2) {
-    Start-Process cmd.exe -ArgumentList "/k", "cd /d `"$rootDir`" && `"$ngrokPath`" http 8000 --url https://anatomy-portly-yard.ngrok-free.dev"
+    Start-Process cmd.exe -ArgumentList "/k", "cd /d `"$rootDir`" && `"$ngrokPath`" http 127.0.0.1:8000 --url https://anatomy-portly-yard.ngrok-free.dev"
 }
 
 Write-Host ""
