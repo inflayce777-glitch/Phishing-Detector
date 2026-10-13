@@ -1,4 +1,5 @@
 import { isTrustedDomain } from './trustedDomains';
+import { parseMimeEmail } from '@/lib/emailParser';
 
 export interface PhishingVector {
   id?: string;
@@ -95,62 +96,12 @@ const TEXT_RULES = {
 };
 
 export function extractEmailData(rawText: string, providedSender?: string) {
-  let sender = (providedSender || '').trim();
-  let decodedText = rawText;
-  const isMime = /Content-Type:|MIME-Version:/i.test(rawText);
+  const parsed = parseMimeEmail(rawText, providedSender);
+  const sender = parsed.sender || (providedSender || '').trim();
+  const cleanBody = parsed.displayText;
+  const decodedText = parsed.plainBody || parsed.displayText || rawText;
 
-  if (isMime) {
-    // 1. Quoted-Printable decoding
-    decodedText = decodedText.replace(/=\r?\n/g, '');
-    try {
-      decodedText = decodedText.replace(/(?:=[0-9A-F]{2})+/gi, (match) => {
-        const hexValues = match.split('=').filter(Boolean);
-        const bytes = new Uint8Array(hexValues.length);
-        hexValues.forEach((hex, i) => bytes[i] = parseInt(hex, 16));
-        return new TextDecoder('utf-8').decode(bytes);
-      });
-    } catch {}
-
-    // 2. Base64 block decoding
-    decodedText = decodedText.replace(/(?:[A-Za-z0-9+/]{40,}(?:={1,2})?\r?\n?)+/g, (match) => {
-      try {
-        const dec = atob(match.replace(/\s+/g, ''));
-        const bytes = new Uint8Array(dec.length);
-        for (let i = 0; i < dec.length; i++) bytes[i] = dec.charCodeAt(i);
-        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-      } catch {
-        return match;
-      }
-    });
-  }
-
-  // Auto-detect sender if not supplied
-  if (!sender) {
-    // Forwarded sender has priority (original author of forwarded message)
-    const forwardedMatch = decodedText.match(/(?:-{3,}\s*Forwarded message\s*-{3,}|Переслане повідомлення|Пересылаемое сообщение)[\s\S]*?(?:Від|From):\s*(?:[^<\r\n]+<)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?/i);
-    if (forwardedMatch && forwardedMatch[1]) {
-      sender = forwardedMatch[1];
-    } else {
-      const fromMatch = rawText.match(/(?:^|\n)(?:From|Від):\s*(?:[^<\r\n]+<)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?/i);
-      if (fromMatch && fromMatch[1]) {
-        sender = fromMatch[1];
-      }
-    }
-  }
-
-  let cleanBody = decodedText;
-  if (isMime) {
-    cleanBody = cleanBody
-      .replace(/<!--[\s\S]*?-->/g, ' ')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/^([a-zA-Z0-9\-]+):\s*[\s\S]*?(?=\n[A-Z][a-zA-Z\-]+:|\n\n|\n--)/gm, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  return { sender, cleanBody, decodedText };
+  return { sender, cleanBody, decodedText, parsed };
 }
 
 export function analyzeCoreHeuristics(text: string, email: string, url: string): HeuristicResults {
@@ -160,7 +111,7 @@ export function analyzeCoreHeuristics(text: string, email: string, url: string):
   const extractedIndicators = { urls: [] as string[], ips: [] as string[] };
   let isTrusted = false;
 
-  const { sender: effectiveEmail, cleanBody, decodedText } = extractEmailData(text, email);
+  const { sender: effectiveEmail, cleanBody, decodedText, parsed } = extractEmailData(text, email);
 
   // --- 1. Email Analysis ---
   if (effectiveEmail) {
@@ -286,7 +237,10 @@ export function analyzeCoreHeuristics(text: string, email: string, url: string):
 
     // --- 5. URL & IP Extraction from decoded content ---
     const textForUrls = decodedText || text;
-    const rawUrls = textForUrls.match(/(https?:\/\/[^\s"'<>`]+)/g) || [];
+    const rawUrls = [
+      ...(parsed?.extractedUrls || []),
+      ...(textForUrls.match(/(https?:\/\/[^\s"'<>`]+)/g) || [])
+    ];
     
     // Filter out image extensions, avatars and static media URLs
     const imageExtensions = /\.(png|jpe?g|gif|svg|ico|webp|bmp)(?:[?#]|$)/i;

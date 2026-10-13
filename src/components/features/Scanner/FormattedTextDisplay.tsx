@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { PhishingVector } from '@/core/heuristics';
+import { parseMimeEmail } from '@/lib/emailParser';
 
 interface FormattedTextDisplayProps {
   rawText: string;
@@ -28,123 +29,11 @@ export function FormattedTextDisplay({
   onVectorSelect
 }: FormattedTextDisplayProps) {
 
-  // Очищення тексту від непотрібних заголовків та HTML (більш надійний парсинг)
+  // Очищення тексту від непотрібних заголовків та HTML за допомогою універсального MIME-парсера
   const cleanText = useMemo(() => {
-    let t = rawText;
-
-    // 1. Спробуємо знайти частину text/html або text/plain за допомогою MIME-заголовків
-    const htmlPartMatch = t.match(/Content-Type:\s*text\/html[^]*?\r?\n\r?\n([\s\S]*?)(?=\r?\n--[A-Za-z0-9_=+\-]+(?:--)?(?:\r?\n|$)|$)/i);
-    const plainPartMatch = t.match(/Content-Type:\s*text\/plain[^]*?\r?\n\r?\n([\s\S]*?)(?=\r?\n--[A-Za-z0-9_=+\-]+(?:--)?(?:\r?\n|$)|$)/i);
-
-    let html = '';
-    
-    if (htmlPartMatch) {
-      html = htmlPartMatch[1];
-    } else {
-      // Фолбек: якщо немає явного MIME, але є <html> чи <body>
-      const htmlFallback = t.match(/<html[\s\S]*?<\/html>/i) || t.match(/<body[\s\S]*?<\/body>/i);
-      if (htmlFallback) html = htmlFallback[0];
-    }
-
-    if (html) {
-      // Якщо є HTML (або Quoted-Printable HTML)
-      if (html.includes('=')) {
-        try {
-          let decoded = html.replace(/=\r?\n/g, '');
-          decoded = decoded.replace(/=([0-9A-F]{2})/gi, (match, p1) => String.fromCharCode(parseInt(p1, 16)));
-          const bytes = new Uint8Array(decoded.length);
-          for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
-          html = new TextDecoder('utf-8').decode(bytes);
-        } catch (e) { }
-      }
-      t = html;
-    } else if (plainPartMatch) {
-      // Якщо є тільки plain text частина, беремо її
-      t = plainPartMatch[1];
-      
-      // Декодуємо Base64, якщо вона закодована
-      if (/^[A-Za-z0-9+/=\s]+$/.test(t.trim())) {
-        try {
-          let decoded = atob(t.replace(/\s+/g, ''));
-          const bytes = new Uint8Array(decoded.length);
-          for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
-          t = new TextDecoder('utf-8').decode(bytes);
-        } catch (e) {}
-      }
-    } else {
-      // Якщо MIME не знайдено, просто видаляємо всі заголовки
-      t = t.replace(/^([a-zA-Z0-9\-]+):\s*[\s\S]*?(?=\n[A-Z][a-zA-Z\-]+:|\n\n|\n--)/gm, '');
-      
-      // І намагаємось знайти і декодувати Base64 блоки
-      t = t.replace(/(?:[A-Za-z0-9+/]{40,}(?:={1,2})?\r?\n?)+/g, (match) => {
-        try {
-          let decoded = atob(match.replace(/\s+/g, ''));
-          const bytes = new Uint8Array(decoded.length);
-          for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
-          return new TextDecoder('utf-8').decode(bytes);
-        } catch (e) {
-          return ''; 
-        }
-      });
-    }
-
-    // Тепер у t міститься декодований текст. Очищуємо його:
-    
-    // 3. Видаляємо CSS, скрипти, коментарі та HEAD ДО того, як видалимо всі HTML теги
-    let isHtmlText = html !== '';
-    
-    t = t.replace(/<!--[\s\S]*?-->/g, ' ');
-    t = t.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, ' ');
-    t = t.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
-    t = t.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
-    
-    // Використовуємо DOMParser для безпечного видалення прихованих елементів (які дублюють текст)
-    if (typeof window !== 'undefined') {
-      try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(t, 'text/html');
-        // Знаходимо всі елементи, які мають display: none
-        const hiddenElements = doc.querySelectorAll('[style*="display:none"], [style*="display: none"]');
-        hiddenElements.forEach(el => el.remove());
-        t = doc.body.innerHTML;
-        isHtmlText = true;
-      } catch (e) {
-        console.warn("DOMParser failed", e);
-      }
-    }
-
-    // Якщо це HTML, правильно обробляємо перенесення рядків
-    if (isHtmlText) {
-      // Всі реальні перенесення рядка в сирому коді HTML - це просто пробіли для браузера
-      t = t.replace(/\r?\n/g, ' ');
-      // А от блочні теги перетворюємо на справжні перенесення рядка
-      t = t.replace(/<\/?(?:div|p|br|tr|table|h[1-6]|li)[^>]*>/gi, '\n');
-    }
-
-    // 4. Видаляємо всі інші HTML теги
-    t = t.replace(/<[^>]+>/g, ' ');
-
-    // 5. Декодуємо HTML сутності
-    t = t.replace(/&nbsp;/g, ' ')
-       .replace(/&copy;/g, '©')
-       .replace(/&zwnj;/g, '')
-       .replace(/&amp;/g, '&')
-       .replace(/&lt;/g, '<')
-       .replace(/&gt;/g, '>');
-
-    // 6. Видаляємо технічні межі (boundaries)
-    t = t.replace(/--[\w\d]+(?:--)?/g, '');
-
-    // 7. Очищення блоків "Forwarded message" (якщо користувач пересилав лист декілька разів)
-    // Використовуємо [\s\S]*? щоб захопити текст на декількох рядках
-    t = t.replace(/-+\s*Forwarded message\s*-+[\s\S]*?(?:\bTo\b|\bКому\b):?[^\n]*(?:\n|$)/gi, ' ');
-
-    // 8. Видаляємо пусті рядки і зайві пробіли
-    t = t.replace(/[ \t]+/g, ' ');
-    t = t.replace(/\n\s*\n\s*\n+/g, '\n\n');
-    
-    return t.trim();
-  }, [rawText]);
+    const parsed = parseMimeEmail(rawText, senderEmail);
+    return parsed.displayText;
+  }, [rawText, senderEmail]);
 
   // Підсвітка небезпечних сутностей
   const highlightedNodes = useMemo(() => {

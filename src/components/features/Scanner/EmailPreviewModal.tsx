@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useMemo, useEffect } from 'react';
+import { parseMimeEmail } from '@/lib/emailParser';
 
 interface EmailPreviewModalProps {
   isOpen: boolean;
@@ -10,84 +11,41 @@ interface EmailPreviewModalProps {
   rawText: string;
 }
 
-// Функція для декодування quoted-printable та base64 (базова)
-function decodeEmailContent(text: string) {
-  // 1. Спробуємо знайти частину text/html або text/plain за допомогою MIME-заголовків
-  const htmlPartMatch = text.match(/Content-Type:\s*text\/html[^]*?\r?\n\r?\n([\s\S]*?)(?=\r?\n--[A-Za-z0-9_=+\-]+(?:--)?(?:\r?\n|$)|$)/i);
-  let html = '';
+function decodeEmailContent(text: string): string {
+  const parsed = parseMimeEmail(text);
   
-  if (htmlPartMatch) {
-    html = htmlPartMatch[1];
-  } else {
-    const htmlMatch = text.match(/<html[\s\S]*?<\/html>/i);
-    html = htmlMatch ? htmlMatch[0] : '';
-    if (!html) {
-        const bodyMatch = text.match(/<body[\s\S]*?<\/body>/i);
-        html = bodyMatch ? bodyMatch[0] : '';
+  if (parsed.htmlBody) {
+    let html = parsed.htmlBody;
+    
+    // Clean Gmail forwarded attribution header if present
+    if (typeof window !== 'undefined' && typeof DOMParser !== 'undefined') {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const attrs = doc.querySelectorAll('.gmail_attr');
+        attrs.forEach(attr => {
+          if (attr.textContent?.includes('Forwarded message') || attr.textContent?.includes('Переслане')) {
+            attr.remove();
+          }
+        });
+        html = doc.body.innerHTML || html;
+      } catch {}
     }
-  }
-
-  // Якщо HTML все ще немає, спробуємо дістати plain-text
-  if (!html) {
-    const plainPartMatch = text.match(/Content-Type:\s*text\/plain[^]*?\r?\n\r?\n([\s\S]*?)(?=\r?\n--[A-Za-z0-9_=+\-]+(?:--)?(?:\r?\n|$)|$)/i);
-    if (plainPartMatch) {
-      let t = plainPartMatch[1];
-      if (/^[A-Za-z0-9+/=\s]+$/.test(t.trim())) {
-        try {
-          let decoded = atob(t.replace(/\s+/g, ''));
-          const bytes = new Uint8Array(decoded.length);
-          for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
-          t = new TextDecoder('utf-8').decode(bytes);
-        } catch (e) {}
-      }
-      html = '<div style="padding: 20px; font-family: monospace; white-space: pre-wrap;">' + t + '</div>';
-    } else {
-      // Якщо зовсім нічого не знайшли
-      html = '<div style="padding: 20px; font-family: monospace; white-space: pre-wrap;">' + text + '</div>';
-    }
-  }
-
-  // Декодуємо Quoted-Printable, якщо він є (символи на кшталт =E2=9C=85 або =\r\n)
-  if (html.includes('=')) {
-    try {
-      // Видаляємо перенесення рядків (=\n)
-      let decoded = html.replace(/=\r?\n/g, '');
-      // Декодуємо hex
-      decoded = decoded.replace(/=([0-9A-F]{2})/gi, (match, p1) => {
-        return String.fromCharCode(parseInt(p1, 16));
-      });
-      // Для UTF-8 (дуже грубий варіант - перетворити через escape/decodeURIComponent)
-      // Оскільки JS fromCharCode дасть нам байти, нам треба їх зібрати у utf-8.
-      const bytes = new Uint8Array(decoded.length);
-      for(let i=0; i<decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
-      const decoder = new TextDecoder('utf-8');
-      html = decoder.decode(bytes);
-    } catch (e) {
-      console.warn("Failed to decode quoted-printable", e);
-    }
-  }
-
-  // Вирізаємо блок Forwarded message для чистоти (оскільки це часто тест)
-  // У Gmail це зазвичай <div dir="ltr" class="gmail_attr">...</div>
-  // Або просто шукаємо текст і видаляємо його
-  if (typeof window !== 'undefined') {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      
-      // Шукаємо gmail_attr, який містить "Forwarded message"
-      const attrs = doc.querySelectorAll('.gmail_attr');
-      attrs.forEach(attr => {
-        if (attr.textContent?.includes('Forwarded message')) {
-          attr.remove();
-        }
-      });
-      
-      html = doc.body.innerHTML;
-    } catch (e) {}
+    
+    return html;
   }
   
-  return html;
+  // If only plain text is available, render it cleanly with styling
+  const safeText = (parsed.displayText || text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+    
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; line-height: 1.6; color: #1a202c; background-color: #ffffff; white-space: pre-wrap; word-break: break-word;">
+      ${safeText}
+    </div>
+  `;
 }
 
 export function EmailPreviewModal({ isOpen, onClose, rawText }: EmailPreviewModalProps) {
