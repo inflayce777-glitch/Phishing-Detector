@@ -209,6 +209,10 @@ class AnalysisResponse(BaseModel):
 # -------------------------------------------------------------
 # ENDPOINTS
 # -------------------------------------------------------------
+@app.get("/")
+async def root():
+    return {"status": "online", "message": "Phishing Detector ML API is active"}
+
 @app.get("/api/health")
 async def health_check():
     report = {}
