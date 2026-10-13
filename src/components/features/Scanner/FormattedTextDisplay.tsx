@@ -238,7 +238,7 @@ export function FormattedTextDisplay({
       wordBreak: 'break-word'
     }}>
       <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--fx-line)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <div><strong>ВІДПРАВНИК:</strong> {senderEmail ? <span style={{ color: 'var(--fx-cyan)' }}>{senderEmail}</span> : 'Не вказано'}</div>
+        <div><strong>Відправник:</strong> {senderEmail ? <span style={{ color: 'var(--fx-cyan)' }}>{senderEmail}</span> : 'Не вказано'}</div>
         {isTrusted && (
           <span style={{ 
             backgroundColor: 'rgba(0, 255, 136, 0.15)', 
@@ -254,7 +254,7 @@ export function FormattedTextDisplay({
             gap: '5px'
           }}>
             <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>ПЕРЕВІРЕНО (Whitelist / DMARC)</span>
+            <span>Перевірено (Whitelist / DMARC)</span>
           </span>
         )}
       </div>

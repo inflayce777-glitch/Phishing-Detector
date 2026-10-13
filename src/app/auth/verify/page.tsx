@@ -62,7 +62,7 @@ export default function VerifyLogin() {
         </div>
         
         <h1 className="text-2xl font-bold text-center text-white mb-2 tracking-tight">
-          ДВОФАКТОРНА ПЕРЕВІРКА
+          Двофакторна перевірка
         </h1>
         <p className="text-gray-400 text-center mb-8 text-sm">
           Введіть 6-значний код з Google Authenticator для доступу до аналізатора.
@@ -83,7 +83,7 @@ export default function VerifyLogin() {
             disabled={loading || token.length !== 6}
             className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold py-4 px-4 rounded transition-colors"
           >
-            {loading ? "Зачекайте..." : "ПІДТВЕРДИТИ"}
+            {loading ? "Зачекайте..." : "Підтвердити"}
           </button>
         </div>
 

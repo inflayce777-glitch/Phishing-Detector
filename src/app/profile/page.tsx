@@ -55,7 +55,7 @@ export default function Profile() {
     <div className="min-h-screen bg-gray-950 text-gray-300 font-mono p-8 flex justify-center">
       <div className="w-full max-w-2xl">
         <header className="flex justify-between items-center mb-10 pb-6 border-b border-gray-800">
-          <h1 className="text-3xl font-bold text-white tracking-tight">НАЛАШТУВАННЯ БЕЗПЕКИ</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Налаштування безпеки</h1>
           <Link href="/" className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm transition-colors flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" /> Назад
           </Link>
@@ -72,9 +72,9 @@ export default function Profile() {
               <div className="text-sm text-gray-500 mb-1">Поточний статус</div>
               <div className="flex items-center gap-2">
                 {isEnabled ? (
-                  <><Shield className="w-5 h-5 text-emerald-500" /> <span className="text-emerald-500 font-bold">УВІМКНЕНО</span></>
+                  <><Shield className="w-5 h-5 text-emerald-500" /> <span className="text-emerald-500 font-bold">Увімкнено</span></>
                 ) : (
-                  <><ShieldAlert className="w-5 h-5 text-red-500" /> <span className="text-red-500 font-bold">ВИМКНЕНО</span></>
+                  <><ShieldAlert className="w-5 h-5 text-red-500" /> <span className="text-red-500 font-bold">Вимкнено</span></>
                 )}
               </div>
             </div>

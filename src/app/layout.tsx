@@ -17,6 +17,14 @@ import { AuthProvider } from '../components/AuthProvider';
 export const metadata: Metadata = {
   title: 'Phishing Detector XAI',
   description: 'AI-powered phishing detection and psychological analysis',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' }
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

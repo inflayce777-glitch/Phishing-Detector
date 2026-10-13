@@ -120,7 +120,7 @@ export function EmailPreviewModal({ isOpen, onClose, rawText }: EmailPreviewModa
             <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-950">
               <h3 className="font-mono text-cyan-500 font-semibold flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                ПОПЕРЕДНІЙ ПЕРЕГЛЯД ПОВІДОМЛЕННЯ
+                Попередній перегляд повідомлення
               </h3>
               <button 
                 onClick={onClose}

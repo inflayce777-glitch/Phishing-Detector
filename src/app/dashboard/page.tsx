@@ -152,23 +152,45 @@ export default function Dashboard() {
               <div key={email.id} className="bg-gray-900/80 border border-gray-800 rounded p-5 flex flex-col md:flex-row gap-6 items-start md:items-center relative overflow-hidden transition-all hover:border-gray-600">
                 
                 {email.status === 'ANALYZED' && email.oracleScore !== null && (
-                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${email.oracleScore > 0.6 ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                     (email.oracleLabel === 'phishing' || (!email.oracleLabel && email.oracleScore > 0.6))
+                       ? 'bg-red-500'
+                       : email.oracleLabel === 'spam'
+                         ? 'bg-amber-500'
+                         : 'bg-emerald-500'
+                   }`}></div>
                 )}
                 {email.status === 'PENDING' && (
-                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500"></div>
+                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400"></div>
                 )}
 
                 <div className="flex-1 min-w-0 pl-2">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="text-xs text-gray-500">{new Date(email.createdAt).toLocaleString()}</span>
                     {email.status === 'PENDING' ? (
-                      <span className="text-xs font-bold text-yellow-500 border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 rounded">Не проАналізовано</span>
-                    ) : (
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded border ${email.oracleScore > 0.6 ? 'text-red-500 border-red-500/30 bg-red-500/10' : 'text-emerald-500 border-emerald-500/30 bg-emerald-500/10'}`}>
-                        {email.oracleLabel?.toUpperCase() || (email.oracleScore > 0.6 ? 'Фішинг' : 'Безпечно')} 
-                        ({(email.oracleScore * 100).toFixed(1)}%)
+                      <span className="text-xs font-medium text-amber-400 border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        Не проаналізовано
                       </span>
-                    )}
+                    ) : (() => {
+                      const isPhish = email.oracleLabel === 'phishing' || (!email.oracleLabel && email.oracleScore > 0.6);
+                      const isSpam = email.oracleLabel === 'spam';
+                      const label = isPhish ? 'Фішинг' : isSpam ? 'Спам' : 'Безпечно';
+                      const badgeColor = isPhish 
+                        ? 'text-red-400 border-red-500/30 bg-red-500/10' 
+                        : isSpam 
+                          ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' 
+                          : 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
+                      const dotColor = isPhish ? 'bg-red-400' : isSpam ? 'bg-amber-400' : 'bg-emerald-400';
+                      const percent = email.oracleScore !== null ? `${(email.oracleScore * 100).toFixed(1)}%` : '';
+
+                      return (
+                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1.5 ${badgeColor}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></span>
+                          {label} {percent ? `(${percent})` : ''}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <h3 className="text-lg text-white font-semibold truncate mb-1">{email.subject}</h3>
                   <p className="text-sm text-gray-400 truncate mb-2">Від: <span className="text-cyan-400">{email.senderEmail || email.sender}</span></p>

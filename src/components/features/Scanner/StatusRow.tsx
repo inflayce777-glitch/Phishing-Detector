@@ -50,8 +50,8 @@ export const StatusRow = ({
       variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 80, damping: 15 } } }}
     >
       <div className="flex items-center gap-4">
-        <span style={{ color: 'var(--fx-cyan)', fontFamily: 'var(--fx-mono)', fontSize: '12px', letterSpacing: '0.1em', fontWeight: 'bold' }}>
-          СТАТУС: {statusText}
+        <span style={{ color: 'var(--fx-cyan)', fontFamily: 'var(--fx-mono)', fontSize: '12px', letterSpacing: '0.05em', fontWeight: 'bold' }}>
+          Статус: {statusText}
         </span>
 
         {/* ML Core Health Badge */}
@@ -67,7 +67,7 @@ export const StatusRow = ({
           >
             <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
             <Cpu className="w-3 h-3" />
-            <span>ML: {isOnline ? (mlHealth?.gpu_name ? 'RTX 3060 CUDA' : 'ONLINE') : 'OFFLINE'}</span>
+            <span>ML: {isOnline ? (mlHealth?.gpu_name ? 'RTX 3060 CUDA' : 'Online') : 'Offline'}</span>
           </button>
 
           {showMlDetails && isOnline && (

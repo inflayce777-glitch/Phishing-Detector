@@ -10,9 +10,9 @@ interface VerdictPanelProps {
 
 export const VerdictPanel = ({ threatLevel, isSpam }: VerdictPanelProps) => {
   const getVerdictLabel = (level: number) => {
-    if (level > 70) return 'КРИТИЧНА ЗАГРОЗА';
-    if (level > 40) return isSpam ? 'ПІДОЗРІЛО (СПАМ)' : 'ПІДОЗРІЛО';
-    return 'БЕЗПЕЧНО';
+    if (level > 70) return 'Критична загроза';
+    if (level > 40) return isSpam ? 'Підозріло (Спам)' : 'Підозріло';
+    return 'Безпечно';
   };
 
   const getVerdictColor = (level: number) => {
@@ -22,7 +22,7 @@ export const VerdictPanel = ({ threatLevel, isSpam }: VerdictPanelProps) => {
   };
 
   return (
-    <Panel title="ВИСНОВОК">
+    <Panel title="Висновок">
       <div className={styles.verdictBody}>
         <div className={styles.scorebox}>
           <div className={`${styles.scoreRing} ${threatLevel < 40 ? styles.safe : ''}`}>
@@ -30,14 +30,14 @@ export const VerdictPanel = ({ threatLevel, isSpam }: VerdictPanelProps) => {
               {threatLevel}
             </span>
           </div>
-          <span className={styles.scoreSub}>РИЗИК / 100</span>
+          <span className={styles.scoreSub}>Ризик / 100</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
           <h3
             style={{
               color: getVerdictColor(threatLevel),
               fontWeight: 700,
-              letterSpacing: '0.05em',
+              letterSpacing: '0.02em',
               margin: 0,
             }}
           >
@@ -47,17 +47,16 @@ export const VerdictPanel = ({ threatLevel, isSpam }: VerdictPanelProps) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: '11px',
                   fontFamily: 'var(--fx-mono)',
-                  padding: '2px 6px',
-                  borderRadius: '2px',
+                  padding: '2px 8px',
+                  borderRadius: '3px',
                   background: 'rgba(243, 156, 18, 0.15)',
                   border: '1px solid rgba(243, 156, 18, 0.4)',
                   color: '#f39c12',
-                  letterSpacing: '0.05em',
                 }}
               >
-                МАСОВА РОЗСИЛКА / АУТРІЧ
+                Масова розсилка / аутріч
               </span>
             </div>
           )}

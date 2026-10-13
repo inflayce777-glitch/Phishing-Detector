@@ -17,7 +17,7 @@ export default function SignIn() {
         </div>
         
         <h1 className="text-2xl font-bold text-center text-white mb-2 tracking-tight">
-          АВТОРИЗАЦІЯ
+          Авторизація
         </h1>
         <p className="text-gray-400 text-center mb-8 text-sm">
           Система доступу до аналізатора фішингу. Для продовження підтвердіть свою особу.

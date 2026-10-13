@@ -13,7 +13,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Mail, MessageSquare, Camera, ChevronDown, Shield, LogOut, History, Key, 
   ShieldAlert, ShieldCheck, ArrowLeft, CheckCircle, AlertTriangle, XCircle, 
-  Building, Calendar, Clock, Globe, Fingerprint, Lock, X 
+  Building, Calendar, Clock, Globe, Fingerprint, Lock, X, Info 
 } from "lucide-react";
 import { Header } from '@/components/layout/Header';
 import { Container } from '@/components/layout/Container';
@@ -258,6 +258,33 @@ function ForensicDashboardContent() {
   };
 
   const stateLabel = stateLabels[state.value as string] || state.value;
+
+  const getSpfLabel = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'pass') return 'Пройдено';
+    if (s === 'fail') return 'Невдача';
+    if (s === 'softfail') return "М'яка невдача";
+    if (s === 'neutral') return 'Нейтрально';
+    if (s === 'none') return 'Відсутній';
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Невідомо';
+  };
+
+  const getDkimLabel = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'pass') return 'Пройдено';
+    if (s === 'fail') return 'Невдача';
+    if (s === 'none') return 'Відсутній';
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Невідомо';
+  };
+
+  const getDmarcLabel = (alignment: string) => {
+    const a = (alignment || '').toLowerCase();
+    if (a === 'aligned') return 'Співпадає';
+    if (a === 'unaligned') return 'Невідповідність';
+    if (a === 'unknown') return 'Невідомо';
+    if (a === 'none') return 'Відсутній';
+    return a ? a.charAt(0).toUpperCase() + a.slice(1) : 'Невідомо';
+  };
   
   const vectors = state.context.vectors;
   
@@ -545,49 +572,81 @@ function ForensicDashboardContent() {
                             </div>
                             <span style={{ 
                               fontSize: '11px', 
-                              padding: '2px 8px', 
-                              borderRadius: '3px',
-                              background: state.context.emailAuth.isSpoofed ? 'rgba(255,0,60,0.15)' : 'rgba(0,255,136,0.15)',
-                              border: `1px solid ${state.context.emailAuth.isSpoofed ? '#ff003c' : 'var(--fx-success)'}`,
-                              color: state.context.emailAuth.isSpoofed ? '#ff4d4d' : 'var(--fx-success)'
+                              padding: '3px 10px', 
+                              borderRadius: '9999px',
+                              background: state.context.emailAuth.isSpoofed ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                              border: `1px solid ${state.context.emailAuth.isSpoofed ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}`,
+                              color: state.context.emailAuth.isSpoofed ? '#f87171' : '#34d399',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
                             }}>
-                              {state.context.emailAuth.isSpoofed ? 'ВИЯВЛЕНО СПУФІНГ' : 'ВЕРИФІКОВАНО'}
+                              {state.context.emailAuth.isSpoofed ? (
+                                <>
+                                  <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                                  <span>Виявлено спуфінг</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Верифіковано</span>
+                                </>
+                              )}
                             </span>
                           </div>
 
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
-                            <span style={{ 
-                              display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '3px',
-                              background: state.context.emailAuth.spf.status === 'pass' ? 'rgba(0,255,136,0.1)' : 'rgba(255,77,77,0.1)',
-                              border: `1px solid ${state.context.emailAuth.spf.status === 'pass' ? 'var(--fx-success)' : '#ff4d4d'}`,
-                              color: state.context.emailAuth.spf.status === 'pass' ? 'var(--fx-success)' : '#ff4d4d',
-                              fontSize: '11px'
-                            }}>
-                              {state.context.emailAuth.spf.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                              SPF: {state.context.emailAuth.spf.status.toUpperCase()}
-                            </span>
+                            <div 
+                              className="group relative cursor-help"
+                              title="SPF (Sender Policy Framework) — захисний протокол, який перевіряє, чи дозволено поштовому серверу відправляти листи від імені цього домену."
+                            >
+                              <span style={{ 
+                                display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
+                                background: state.context.emailAuth.spf.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                border: `1px solid ${state.context.emailAuth.spf.status === 'pass' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                color: state.context.emailAuth.spf.status === 'pass' ? '#34d399' : '#f87171',
+                                fontSize: '11px'
+                              }}>
+                                {state.context.emailAuth.spf.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                                <span>SPF: {getSpfLabel(state.context.emailAuth.spf.status)}</span>
+                                <Info className="w-3 h-3 text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                              </span>
+                            </div>
 
-                            <span style={{ 
-                              display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '3px',
-                              background: state.context.emailAuth.dkim.status === 'pass' ? 'rgba(0,255,136,0.1)' : 'rgba(255,77,77,0.1)',
-                              border: `1px solid ${state.context.emailAuth.dkim.status === 'pass' ? 'var(--fx-success)' : '#ff4d4d'}`,
-                              color: state.context.emailAuth.dkim.status === 'pass' ? 'var(--fx-success)' : '#ff4d4d',
-                              fontSize: '11px'
-                            }}>
-                              {state.context.emailAuth.dkim.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                              DKIM: {state.context.emailAuth.dkim.status.toUpperCase()}
-                            </span>
+                            <div 
+                              className="group relative cursor-help"
+                              title="DKIM (DomainKeys Identified Mail) — цифровий криптографічний підпис відправника, що гарантує цілісність листа під час доставки."
+                            >
+                              <span style={{ 
+                                display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
+                                background: state.context.emailAuth.dkim.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                border: `1px solid ${state.context.emailAuth.dkim.status === 'pass' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                color: state.context.emailAuth.dkim.status === 'pass' ? '#34d399' : '#f87171',
+                                fontSize: '11px'
+                              }}>
+                                {state.context.emailAuth.dkim.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                                <span>DKIM: {getDkimLabel(state.context.emailAuth.dkim.status)}</span>
+                                <Info className="w-3 h-3 text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                              </span>
+                            </div>
 
-                            <span style={{ 
-                              display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '3px',
-                              background: state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(0,255,136,0.1)' : 'rgba(255,77,77,0.1)',
-                              border: `1px solid ${state.context.emailAuth.dmarc.alignment === 'aligned' ? 'var(--fx-success)' : '#ff4d4d'}`,
-                              color: state.context.emailAuth.dmarc.alignment === 'aligned' ? 'var(--fx-success)' : '#ff4d4d',
-                              fontSize: '11px'
-                            }}>
-                              {state.context.emailAuth.dmarc.alignment === 'aligned' ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                              DMARC ALIGNMENT: {state.context.emailAuth.dmarc.alignment.toUpperCase()}
-                            </span>
+                            <div 
+                              className="group relative cursor-help"
+                              title="DMARC (Domain-based Message Authentication) — політика захисту від підробки адреси, яка вказує провайдерам, як обробляти листи з підозрілим SPF/DKIM."
+                            >
+                              <span style={{ 
+                                display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
+                                background: state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                border: `1px solid ${state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                color: state.context.emailAuth.dmarc.alignment === 'aligned' ? '#34d399' : '#f87171',
+                                fontSize: '11px'
+                              }}>
+                                {state.context.emailAuth.dmarc.alignment === 'aligned' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                                <span>DMARC: {getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</span>
+                                <Info className="w-3 h-3 text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                              </span>
+                            </div>
                           </div>
 
                           {state.context.emailAuth.spoofingReason && (
@@ -690,8 +749,7 @@ function ForensicDashboardContent() {
                           transition: 'background 0.2s, border 0.2s',
                         }}
                       >
-                        {vec.trigger.toUpperCase()} ({(vec.score * 100).toFixed(1)}
-                        %)
+                        {vec.trigger ? (vec.trigger.charAt(0).toUpperCase() + vec.trigger.slice(1)) : ''} ({(vec.score * 100).toFixed(1)}%)
                       </motion.span>
                     ))}
                     {vectors.length === 0 && (

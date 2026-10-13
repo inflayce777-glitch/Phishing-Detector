@@ -12,7 +12,7 @@ interface GraphPanelProps {
 
 export const GraphPanel = ({ vectors, activeNode, setActiveNode, threatLevel }: GraphPanelProps) => {
   return (
-    <Panel title="ГРАФ ОЗНАК (3D)" noPadding>
+    <Panel title="Граф ознак (3D)" noPadding>
       <div style={{ height: '350px', position: 'relative' }}>
         <ThreatCanvas vectors={vectors} onNodeClick={setActiveNode} riskScore={threatLevel} />
 
@@ -34,10 +34,10 @@ export const GraphPanel = ({ vectors, activeNode, setActiveNode, threatLevel }: 
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <div style={{ color: activeNode.color, fontFamily: 'var(--fx-mono)', fontSize: '11px', fontWeight: 'bold' }}>
-                [ {activeNode.trigger.toUpperCase()} ]
+                [ {activeNode.trigger ? (activeNode.trigger.charAt(0).toUpperCase() + activeNode.trigger.slice(1)) : ''} ]
               </div>
               <div style={{ color: activeNode.color, fontFamily: 'var(--fx-mono)', fontSize: '11px' }}>
-                {(activeNode.score * 100).toFixed(1)}% РИЗИК
+                {(activeNode.score * 100).toFixed(1)}% Ризик
               </div>
             </div>
             <div style={{ color: 'var(--fx-text)', fontSize: '13px', lineHeight: '1.5' }}>

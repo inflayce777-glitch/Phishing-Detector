@@ -30,7 +30,7 @@ export const Header = ({ children }: HeaderProps) => {
             />
           </svg>
         </div>
-        <div className={styles.title}>СЕМАНТИЧНИЙ АНАЛІЗ ЗАГРОЗ</div>
+        <div className={styles.title}>Семантичний аналіз загроз</div>
       </div>
       {children && <div>{children}</div>}
     </motion.header>

@@ -64,7 +64,7 @@ export const InputPanel = ({
 
   return (
     <Panel 
-      title="ВХІДНІ ДАНІ"
+      title="Вхідні дані"
       headerRight={
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button 
@@ -73,7 +73,7 @@ export const InputPanel = ({
             disabled={isScanning || (isComplete && !isEditing)}
             style={{ padding: '6px 12px', fontSize: '11px' }}
           >
-            <Mail className="w-3.5 h-3.5" /> ПОШТА
+            <Mail className="w-3.5 h-3.5" /> Пошта
           </Button>
           <Button 
             variant={appMode === 'messenger' ? 'primary' : 'outline'}
@@ -81,7 +81,7 @@ export const InputPanel = ({
             disabled={isScanning || (isComplete && !isEditing)}
             style={{ padding: '6px 12px', fontSize: '11px' }}
           >
-            <MessageSquare className="w-3.5 h-3.5" /> МЕСЕНДЖЕР
+            <MessageSquare className="w-3.5 h-3.5" /> Месенджер
           </Button>
         </div>
       }
@@ -90,7 +90,7 @@ export const InputPanel = ({
         {isComplete && !isEditing ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--fx-cyan)', marginBottom: '4px', letterSpacing: '1px' }}>ПОЧАТКОВИЙ ТЕКСТ (СИРИЙ)</div>
+              <div style={{ fontSize: '11px', color: 'var(--fx-cyan)', marginBottom: '4px', letterSpacing: '0.5px' }}>Початковий текст (сирий)</div>
               <Textarea
                 value={inputValue}
                 readOnly
@@ -100,7 +100,7 @@ export const InputPanel = ({
             </div>
             
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--fx-cyan)', marginBottom: '4px', letterSpacing: '1px' }}>ВІДФОРМАТОВАНИЙ ТЕКСТ (З ПІДСВІТКОЮ)</div>
+              <div style={{ fontSize: '11px', color: 'var(--fx-cyan)', marginBottom: '4px', letterSpacing: '0.5px' }}>Відформатований текст (з підсвіткою)</div>
               {isMissingSenderWarning && (
                 <div style={{ padding: '8px', marginBottom: '8px', backgroundColor: 'rgba(255, 127, 80, 0.2)', border: '1px solid #ff7f50', borderRadius: '4px', color: '#ff7f50', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
@@ -132,7 +132,7 @@ export const InputPanel = ({
                   style={{ width: '100%', padding: '12px', borderStyle: 'dashed' }}
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  ВІДКРИТИ ПОПЕРЕДНІЙ ПЕРЕГЛЯД ПОВІДОМЛЕННЯ
+                  Відкрити попередній перегляд повідомлення
                 </Button>
                 
                 <EmailPreviewModal 
@@ -165,11 +165,11 @@ export const InputPanel = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
             <Button variant="outline" onClick={onCameraClick} disabled={isOcrLoading || (isComplete && !isEditing)}>
               <Camera className="w-4 h-4" />
-              {isOcrLoading ? 'РОЗПІЗНАВАННЯ...' : 'СКАНУВАТИ СКРІНШОТ'}
+              {isOcrLoading ? 'Розпізнавання...' : 'Сканувати скріншот'}
             </Button>
             
             <Button onClick={onScanClick} disabled={!inputValue.trim()}>
-              {isEditing ? 'ОНОВИТИ АНАЛІЗ' : 'ПОЧАТИ АНАЛІЗ'}
+              {isEditing ? 'Оновити аналіз' : 'Почати аналіз'}
             </Button>
           </div>
         )}
