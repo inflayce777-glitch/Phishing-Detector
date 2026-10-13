@@ -17,10 +17,19 @@ export async function POST() {
     const userId = (session.user as any).id;
     if (!userEmail) return NextResponse.json({ error: 'No email found' }, { status: 400 });
 
+    const smtpUser = (process.env.SMTP_USER || '').trim().replace(/^["']|["']$/g, '');
+    const smtpPass = (process.env.SMTP_PASS || '').trim().replace(/^["']|["']$/g, '');
+
+    if (!smtpUser || !smtpPass) {
+      return NextResponse.json({
+        error: 'На сервері відсутні змінні середовища SMTP_USER або SMTP_PASS'
+      }, { status: 500 });
+    }
+
     const config = {
       imap: {
-        user: process.env.SMTP_USER as string,
-        password: process.env.SMTP_PASS as string,
+        user: smtpUser,
+        password: smtpPass.replace(/\s+/g, ''),
         host: 'imap.gmail.com',
         port: 993,
         tls: true,
@@ -136,9 +145,11 @@ export async function POST() {
     }
 
     return NextResponse.json({ success: true, synced: syncedCount });
-  } catch (error) {
+  } catch (error: any) {
     console.error('IMAP Sync Error:', error);
-    return NextResponse.json({ error: 'Failed to sync emails' }, { status: 500 });
+    return NextResponse.json({ 
+      error: error?.message || 'Failed to sync emails' 
+    }, { status: 500 });
   } finally {
     if (connection) {
       try {
