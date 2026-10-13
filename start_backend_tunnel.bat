@@ -7,11 +7,16 @@ echo   Phishing Detector: AI Backend + Permanent Ngrok Tunnel
 echo ====================================================================
 echo.
 
-echo [1/2] Launching Python ML Backend on GPU CUDA...
-start "Python-ML-Backend" cmd /k "cd /d ""%~dp0python_backend"" && ""%~dp0.venv\Scripts\python.exe"" main.py"
+set "PYTHON_EXE=%~dp0python_backend\.venv\Scripts\python.exe"
+if not exist "%PYTHON_EXE%" set "PYTHON_EXE=%~dp0.venv\Scripts\python.exe"
+if not exist "%PYTHON_EXE%" set "PYTHON_EXE=python"
 
-echo Waiting 3 seconds for model initialization...
-timeout /t 3 /nobreak > nul
+echo [1/2] Launching Python ML Backend on GPU CUDA...
+echo Using Python: %PYTHON_EXE%
+start "Python-ML-Backend" cmd /k "cd /d ""%~dp0python_backend"" && ""%PYTHON_EXE%"" main.py"
+
+echo Waiting 4 seconds for model initialization...
+timeout /t 4 /nobreak > nul
 
 echo [2/2] Launching Permanent Ngrok Tunnel (https://anatomy-portly-yard.ngrok-free.dev)...
 start "Ngrok-Tunnel" cmd /k "cd /d ""%~dp0"" && ngrok.exe http 8000 --url https://anatomy-portly-yard.ngrok-free.dev"

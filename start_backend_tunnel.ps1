@@ -6,11 +6,20 @@ Write-Host ""
 Stop-Process -Name "ngrok" -Force -ErrorAction SilentlyContinue
 
 $rootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$pythonPath = Join-Path $rootDir ".venv\Scripts\python.exe"
 $backendDir = Join-Path $rootDir "python_backend"
 $ngrokPath = Join-Path $rootDir "ngrok.exe"
 
+$pythonPath = Join-Path $backendDir ".venv\Scripts\python.exe"
+if (-not (Test-Path $pythonPath)) {
+    $pythonPath = Join-Path $rootDir ".venv\Scripts\python.exe"
+}
+if (-not (Test-Path $pythonPath)) {
+    $pythonPath = "python"
+}
+
 Write-Host "[1/2] Launching Python ML Backend on GPU CUDA..." -ForegroundColor Green
+Write-Host "Using Python: $pythonPath" -ForegroundColor Gray
+
 Start-Process wt.exe -ArgumentList "new-tab", "--title", "Python ML Backend", "-d", "$backendDir", "$pythonPath", "main.py" -ErrorAction SilentlyContinue `
     -ErrorVariable wtError
 
@@ -18,7 +27,7 @@ if ($wtError) {
     Start-Process cmd.exe -ArgumentList "/k", "cd /d `"$backendDir`" && `"$pythonPath`" main.py"
 }
 
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 4
 
 Write-Host "[2/2] Launching Permanent Ngrok Tunnel (https://anatomy-portly-yard.ngrok-free.dev)..." -ForegroundColor Green
 Start-Process wt.exe -ArgumentList "new-tab", "--title", "Ngrok Tunnel", "-d", "$rootDir", "$ngrokPath", "http", "8000", "--url", "https://anatomy-portly-yard.ngrok-free.dev" -ErrorAction SilentlyContinue `
