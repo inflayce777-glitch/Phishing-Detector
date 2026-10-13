@@ -16,18 +16,24 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        (session.user as any).id = token.sub;
-        
-        // Fetch custom user data (like TOTP)
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { totpEnabled: true }
-        });
-        
-        if (dbUser) {
-           (session.user as any).totpEnabled = dbUser.totpEnabled;
-        }
+      if (!token?.sub) {
+        return null as any;
+      }
+
+      // Verify that user still exists in the database
+      const dbUser = await prisma.user.findUnique({
+        where: { id: token.sub },
+        select: { id: true, totpEnabled: true }
+      });
+
+      // If user was deleted from database (e.g. database was cleared), kill the session
+      if (!dbUser) {
+        return null as any;
+      }
+
+      if (session.user) {
+        (session.user as any).id = dbUser.id;
+        (session.user as any).totpEnabled = dbUser.totpEnabled;
       }
       return session;
     },
@@ -35,16 +41,18 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.sub = user.id;
       }
-      // We must fetch totpEnabled for the token on every request or login
-      // Because middleware only sees the token, not the session
       if (token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { totpEnabled: true }
+          select: { id: true, totpEnabled: true }
         });
-        if (dbUser) {
-          token.totpEnabled = dbUser.totpEnabled;
+
+        // If user no longer exists in DB, wipe the token so middleware ejects the user
+        if (!dbUser) {
+          return {};
         }
+
+        token.totpEnabled = dbUser.totpEnabled;
       }
       return token;
     }
