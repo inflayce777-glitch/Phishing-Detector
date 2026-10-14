@@ -374,6 +374,13 @@ export function extractUrlsFromText(text: string): string[] {
   if (!text) return [];
   const urlRegex = /https?:\/\/[^\s<>"'{}|\\^`\[\]]+/gi;
   const matches = text.match(urlRegex) || [];
-  const clean = matches.map(u => u.replace(/[.,;:)\]]+$/, ''));
+  const clean = matches.map(u => {
+    return u
+      .replace(/&amp;/gi, '&')
+      .replace(/&#38;/gi, '&')
+      .trim()
+      .replace(/^[`'"]+|[`'"]+$/g, '')
+      .replace(/[.,;:)\]}>`]+$/g, '');
+  }).filter(u => u.length > 8);
   return Array.from(new Set(clean));
 }

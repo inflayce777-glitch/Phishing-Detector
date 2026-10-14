@@ -247,7 +247,7 @@ export function analyzeCoreHeuristics(text: string, email: string, url: string):
     const avatarPatterns = /(googleusercontent\.com\/a\/|avatar|gravatar\.com|twimg\.com\/profile_images)/i;
     
     const extractedUrls = rawUrls
-      .map(u => u.trim().replace(/^[`'"]+|[`'"]+$/g, '').replace(/[.,;:)\]}>`]+$/g, ''))
+      .map(u => u.replace(/&amp;/gi, '&').replace(/&#38;/gi, '&').trim().replace(/^[`'"]+|[`'"]+$/g, '').replace(/[.,;:)\]}>`]+$/g, ''))
       .filter(u => u.length > 8 && !imageExtensions.test(u) && !avatarPatterns.test(u));
     
     // IP extraction with private IP filtration
