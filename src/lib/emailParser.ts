@@ -72,18 +72,27 @@ export function decodeBase64(b64: string, charset = 'utf-8'): string {
  */
 export function decodeQuotedPrintable(qp: string, charset = 'utf-8'): string {
   try {
-    // 1. Remove soft line-breaks (=\r\n or =\n)
-    const noSoftBreaks = qp.replace(/=\r?\n/g, '');
+    // 1. Remove soft line-breaks (=\r\n or =\n, with optional trailing spaces/tabs)
+    const noSoftBreaks = qp.replace(/=[ \t]*\r?\n/g, '');
     
     // 2. Collect bytes
     const byteArray: number[] = [];
     let i = 0;
+    const encoder = new TextEncoder();
     while (i < noSoftBreaks.length) {
       if (noSoftBreaks[i] === '=' && i + 2 < noSoftBreaks.length && /^[0-9A-Fa-f]{2}$/.test(noSoftBreaks.substring(i + 1, i + 3))) {
         byteArray.push(parseInt(noSoftBreaks.substring(i + 1, i + 3), 16));
         i += 3;
       } else {
-        byteArray.push(noSoftBreaks.charCodeAt(i));
+        const code = noSoftBreaks.charCodeAt(i);
+        if (code <= 127) {
+          byteArray.push(code);
+        } else {
+          const charBytes = encoder.encode(noSoftBreaks[i]);
+          for (let b = 0; b < charBytes.length; b++) {
+            byteArray.push(charBytes[b]);
+          }
+        }
         i++;
       }
     }
@@ -355,9 +364,11 @@ export function parseMimeEmail(rawText: string, providedSender?: string): Parsed
     .replace(/\n\s*\n\s*\n+/g, '\n\n')
     .trim();
   
-  // 7. Extract all URLs from all decoded sources
-  const combinedForUrls = (htmlBody + ' ' + plainBody + ' ' + displayText + ' ' + rawText);
-  const extractedUrls = extractUrlsFromText(combinedForUrls);
+  // 7. Extract all URLs from decoded sources only (never rawText, to avoid chopped Quoted-Printable fragments)
+  const decodedSources = [htmlBody, plainBody, displayText].filter(Boolean).join('\n');
+  const extractedUrls = decodedSources.trim() 
+    ? extractUrlsFromText(decodedSources) 
+    : extractUrlsFromText(decodeQuotedPrintable(rawText));
   
   return {
     isMime: true,
@@ -372,15 +383,69 @@ export function parseMimeEmail(rawText: string, providedSender?: string): Parsed
 
 export function extractUrlsFromText(text: string): string[] {
   if (!text) return [];
+
+  // Remove Quoted-Printable soft breaks if present in text
+  const cleanSource = text.replace(/=[ \t]*\r?\n/g, '');
+
   const urlRegex = /https?:\/\/[^\s<>"'{}|\\^`\[\]]+/gi;
-  const matches = text.match(urlRegex) || [];
-  const clean = matches.map(u => {
-    return u
+  const matches = cleanSource.match(urlRegex) || [];
+
+  const rawCleaned = matches.map(u => {
+    let clean = u
       .replace(/&amp;/gi, '&')
       .replace(/&#38;/gi, '&')
       .trim()
       .replace(/^[`'"]+|[`'"]+$/g, '')
       .replace(/[.,;:)\]}>`]+$/g, '');
+
+    // Normalize Quoted-Printable '=3D' inside URL to '='
+    clean = clean.replace(/=3D/gi, '=');
+
+    // Strip trailing Quoted-Printable soft breaks or artifacts (= or =3D) if not a query param
+    if (!clean.includes('?') && clean.endsWith('=')) {
+      clean = clean.replace(/=+$/g, '');
+    }
+
+    return clean;
   }).filter(u => u.length > 8);
-  return Array.from(new Set(clean));
+
+  // Validate URL syntax and domain validity
+  const validUrls: string[] = [];
+  for (const candidate of rawCleaned) {
+    try {
+      const urlObj = new URL(candidate);
+      if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') continue;
+
+      const hostname = urlObj.hostname.toLowerCase();
+      // Hostname cannot contain '=', '_', or quotes
+      if (!hostname || hostname.includes('=') || hostname.includes('_')) continue;
+
+      // Must have at least one dot (domain.tld) or be localhost or valid IP
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+      const isIp = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+      const isDomain = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(hostname);
+
+      if (!isLocalhost && !isIp && !isDomain) continue;
+
+      // Check TLD has at least 2 chars (not a broken cut-off)
+      if (isDomain) {
+        const parts = hostname.split('.');
+        const tld = parts[parts.length - 1];
+        if (tld.length < 2 || !/^[a-z]+$/i.test(tld)) continue;
+      }
+
+      validUrls.push(urlObj.href);
+    } catch {
+      // Invalid URL
+    }
+  }
+
+  // Deduplicate and filter out truncated prefixes
+  // (e.g. if we have https://c.gle/ABC and https://c.gle/ABCDEF..., keep only the longer full URL)
+  const uniqueUrls = Array.from(new Set(validUrls));
+  const filteredUrls = uniqueUrls.filter((url, _, arr) => {
+    return !arr.some(other => other !== url && other.startsWith(url));
+  });
+
+  return filteredUrls;
 }

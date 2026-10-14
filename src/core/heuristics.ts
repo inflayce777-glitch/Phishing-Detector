@@ -1,5 +1,5 @@
 import { isTrustedDomain } from './trustedDomains';
-import { parseMimeEmail } from '@/lib/emailParser';
+import { parseMimeEmail, extractUrlsFromText } from '@/lib/emailParser';
 
 export interface PhishingVector {
   id?: string;
@@ -236,10 +236,10 @@ export function analyzeCoreHeuristics(text: string, email: string, url: string):
     }
 
     // --- 5. URL & IP Extraction from decoded content ---
-    const textForUrls = decodedText || text;
+    const textForUrls = decodedText || cleanBody;
     const rawUrls = [
       ...(parsed?.extractedUrls || []),
-      ...(textForUrls.match(/(https?:\/\/[^\s"'<>`]+)/g) || [])
+      ...(extractUrlsFromText(textForUrls))
     ];
     
     // Filter out image extensions, avatars and static media URLs
@@ -247,14 +247,19 @@ export function analyzeCoreHeuristics(text: string, email: string, url: string):
     const avatarPatterns = /(googleusercontent\.com\/a\/|avatar|gravatar\.com|twimg\.com\/profile_images)/i;
     
     const extractedUrls = rawUrls
-      .map(u => u.replace(/&amp;/gi, '&').replace(/&#38;/gi, '&').trim().replace(/^[`'"]+|[`'"]+$/g, '').replace(/[.,;:)\]}>`]+$/g, ''))
       .filter(u => u.length > 8 && !imageExtensions.test(u) && !avatarPatterns.test(u));
     
+    // Deduplicate and filter out truncated prefixes
+    const uniqueUrls = Array.from(new Set(extractedUrls));
+    const filteredUrls = uniqueUrls.filter((url, _, arr) => {
+      return !arr.some(other => other !== url && other.startsWith(url));
+    });
+
     // IP extraction with private IP filtration
     const rawIps = textForUrls.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) || [];
     const publicIps = rawIps.filter(ip => !/^(10\.|192\.168\.|127\.|169\.254\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(ip));
     
-    extractedIndicators.urls = Array.from(new Set(extractedUrls));
+    extractedIndicators.urls = filteredUrls;
     extractedIndicators.ips = Array.from(new Set(publicIps));
   }
   

@@ -237,6 +237,7 @@ const runInferenceActor = fromPromise(
 
     for (const urlStr of candidateUrls) {
       const bRes = detectBrandImpersonation(urlStr);
+      if (!bRes.candidateDomain || bRes.candidateDomain.includes('=') || !bRes.candidateDomain.includes('.')) continue;
       if (seenCandidateDomains.has(bRes.candidateDomain)) continue;
       seenCandidateDomains.add(bRes.candidateDomain);
 

@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
   let cleanDomain = domainParam.trim().toLowerCase();
   cleanDomain = cleanDomain.replace(/^https?:\/\//i, '').split('/')[0].split(':')[0];
 
+  if (!cleanDomain || !cleanDomain.includes('.') || cleanDomain.includes('=') || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(cleanDomain)) {
+    return NextResponse.json({ error: 'Invalid domain name' }, { status: 400 });
+  }
+
   // 1. Check in-memory cache
   const cached = rdapCache.get(cleanDomain);
   if (cached && cached.expiresAt > Date.now()) {

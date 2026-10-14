@@ -25,7 +25,17 @@ export async function POST(request) {
     if (urls && Array.isArray(urls)) {
       const normalizedUrls = Array.from(new Set(
         urls.map(u => String(u || '').replace(/&amp;/g, '&').trim().replace(/^[`'"]+|[`'"]+$/g, '').replace(/[.,;:)\]}>`]+$/g, ''))
-      )).filter(u => u.length > 5);
+      )).filter(u => {
+        if (!u || u.length < 8) return false;
+        try {
+          const parsed = new URL(u.startsWith('http') ? u : `http://${u}`);
+          const host = parsed.hostname.toLowerCase();
+          if (!host || host.includes('=') || host.includes('_') || !host.includes('.')) return false;
+          return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(host);
+        } catch {
+          return false;
+        }
+      });
 
       const urlPromises = normalizedUrls.map(async (rawUrl) => {
         const cleanUrl = rawUrl;
@@ -56,16 +66,22 @@ export async function POST(request) {
             details: `Доменна зона "${hostname}" є зарезервованою як тестова/неіснуюча. Такий сайт не може існувати в публічному інтернеті.`
           });
         } else if (hostname && !hostname.includes('localhost') && !hostname.startsWith('127.')) {
-          // 2. Real DNS Lookup Check (detect non-existent domains / dead links)
-          try {
-            await dns.lookup(hostname);
-          } catch (dnsErr) {
-            if (dnsErr.code === 'ENOTFOUND' || dnsErr.code === 'EAI_AGAIN') {
-              urlMatches.push({
-                threatType: 'НЕДІЙСНИЙ / МЕРТВИЙ ДОМЕН (DNS NXDOMAIN)',
-                threat: { url: rawUrl },
-                details: `Домен "${hostname}" не знайдено на глобальних DNS-серверах (він не існує або видалений). Це типовий маркер фейкових адрес.`
-              });
+          // 2. Real DNS Lookup Check (only on syntactically valid public domains with at least 1 dot)
+          const isValidDomainSyntax = hostname.includes('.') && 
+            !hostname.includes('=') && 
+            /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(hostname);
+
+          if (isValidDomainSyntax) {
+            try {
+              await dns.lookup(hostname);
+            } catch (dnsErr) {
+              if (dnsErr.code === 'ENOTFOUND' || dnsErr.code === 'EAI_AGAIN') {
+                urlMatches.push({
+                  threatType: 'НЕДІЙСНИЙ / МЕРТВИЙ ДОМЕН (DNS NXDOMAIN)',
+                  threat: { url: rawUrl },
+                  details: `Домен "${hostname}" не знайдено на глобальних DNS-серверах (він не існує або видалений). Це типовий маркер фейкових адрес.`
+                });
+              }
             }
           }
         }
