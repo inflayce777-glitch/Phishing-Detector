@@ -205,6 +205,7 @@ export function FormattedTextDisplay({
       overflowY: 'auto',
       whiteSpace: 'pre-wrap',
       wordBreak: 'break-word',
+      overflowWrap: 'anywhere',
       backdropFilter: 'blur(6px)'
     }}>
       <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--fx-line)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>

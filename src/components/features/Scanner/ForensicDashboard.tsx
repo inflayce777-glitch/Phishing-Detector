@@ -818,11 +818,11 @@ function ForensicDashboardContent() {
                                 ) : (
                                   <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                                 )}
-                                <div>
-                                  <span style={{ color: b.isImpersonation ? '#ff8a8a' : 'var(--fx-green)', fontWeight: 500 }}>
+                                <div style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                                  <span style={{ color: b.isImpersonation ? '#ff8a8a' : 'var(--fx-green)', fontWeight: 500, wordBreak: 'break-all' }}>
                                     {b.candidateDomain}
                                   </span>
-                                  <span style={{ display: 'block', color: 'var(--fx-muted)', fontSize: '11px', marginTop: '1px' }}>
+                                  <span style={{ display: 'block', color: 'var(--fx-muted)', fontSize: '11px', marginTop: '1px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                                     {b.explanation}
                                   </span>
                                 </div>
@@ -849,11 +849,11 @@ function ForensicDashboardContent() {
                                   ) : (
                                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                                   )}
-                                  <div>
-                                    <span style={{ color: isBad ? '#f39c12' : 'var(--fx-green)', fontWeight: 500 }}>
+                                  <div style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                                    <span style={{ color: isBad ? '#f39c12' : 'var(--fx-green)', fontWeight: 500, wordBreak: 'break-all' }}>
                                       {dom} {r.ageDays !== null ? `(вік: ${r.ageDays} днів)` : ''}
                                     </span>
-                                    <span style={{ display: 'block', color: 'var(--fx-muted)', fontSize: '11px', marginTop: '1px' }}>
+                                    <span style={{ display: 'block', color: 'var(--fx-muted)', fontSize: '11px', marginTop: '1px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                                       {r.details}
                                     </span>
                                   </div>
@@ -1038,48 +1038,91 @@ function ForensicDashboardContent() {
                                         transition={{ duration: 0.2 }}
                                         style={{ overflow: 'hidden' }}
                                       >
-                                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '11px', fontFamily: 'var(--fx-mono)' }}>
-                                          <div>
-                                            <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Хост / протокол:</span>
-                                            <span style={{ color: 'var(--fx-cyan)' }}>{urlObj ? `${urlObj.protocol}//${urlObj.hostname}` : host}</span>
+                                        <div style={{ 
+                                          marginTop: '10px', 
+                                          paddingTop: '10px', 
+                                          borderTop: '1px solid rgba(255, 255, 255, 0.08)', 
+                                          display: 'flex', 
+                                          flexDirection: 'column', 
+                                          gap: '8px', 
+                                          fontSize: '11px', 
+                                          fontFamily: 'var(--fx-mono)' 
+                                        }}>
+                                          {/* Компактні метадані: Хост, Вік домену, Бренд */}
+                                          <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                                            gap: '10px' 
+                                          }}>
+                                            <div style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
+                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Хост / протокол:</span>
+                                              <span style={{ color: 'var(--fx-cyan)' }}>{urlObj ? `${urlObj.protocol}//${urlObj.hostname}` : host}</span>
+                                            </div>
+
+                                            {rdapInfo && (
+                                              <div style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                                                <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Вік домену (ICANN RDAP):</span>
+                                                <span style={{ color: (rdapInfo.isCritical0Day || rdapInfo.isNewlyRegistered) ? '#f59e0b' : 'var(--fx-green)' }}>
+                                                  {rdapInfo.ageDays !== null ? `${rdapInfo.ageDays} днів` : 'Невідомо'} ({rdapInfo.registrar || 'Реєстратор не вказаний'})
+                                                </span>
+                                              </div>
+                                            )}
+
+                                            {brandMatch && (
+                                              <div style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                                                <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Захист брендів:</span>
+                                                <span style={{ color: brandMatch.isImpersonation ? 'var(--fx-red)' : 'var(--fx-green)' }}>
+                                                  {brandMatch.isImpersonation ? `Підміна: ${brandMatch.targetBrand?.name}` : 'Легітимний ресурс'}
+                                                </span>
+                                              </div>
+                                            )}
                                           </div>
 
+                                          {/* Шлях (Path): Окремий повнорозмірний блок для довгих хешів/токенів */}
                                           {urlObj && urlObj.pathname && urlObj.pathname !== '/' && (
-                                            <div>
-                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Шлях (Path):</span>
-                                              <span style={{ color: '#ffffff' }}>{urlObj.pathname}</span>
+                                            <div style={{ 
+                                              background: 'rgba(0, 0, 0, 0.35)', 
+                                              border: '1px solid rgba(255, 255, 255, 0.08)', 
+                                              borderRadius: '4px', 
+                                              padding: '6px 10px', 
+                                              minWidth: 0 
+                                            }}>
+                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Шлях (Path):</span>
+                                              <span style={{ color: '#ffffff', wordBreak: 'break-all', overflowWrap: 'anywhere', display: 'block', lineHeight: '1.4' }}>
+                                                {urlObj.pathname}
+                                              </span>
                                             </div>
                                           )}
 
+                                          {/* Параметри запиту: Окремий виділений блок */}
                                           {urlObj && urlObj.search && (
-                                            <div>
-                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Параметри запиту:</span>
-                                              <span style={{ color: '#f59e0b', wordBreak: 'break-all' }}>{urlObj.search}</span>
-                                            </div>
-                                          )}
-
-                                          {rdapInfo && (
-                                            <div>
-                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Вік домену (ICANN RDAP):</span>
-                                              <span style={{ color: (rdapInfo.isCritical0Day || rdapInfo.isNewlyRegistered) ? '#f59e0b' : 'var(--fx-green)' }}>
-                                                {rdapInfo.ageDays !== null ? `${rdapInfo.ageDays} днів` : 'Невідомо'} ({rdapInfo.registrar || 'Реєстратор не вказаний'})
+                                            <div style={{ 
+                                              background: 'rgba(245, 158, 11, 0.06)', 
+                                              border: '1px solid rgba(245, 158, 11, 0.25)', 
+                                              borderRadius: '4px', 
+                                              padding: '6px 10px', 
+                                              minWidth: 0 
+                                            }}>
+                                              <span style={{ color: '#f59e0b', display: 'block', marginBottom: '2px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Параметри запиту:</span>
+                                              <span style={{ color: '#fcd34d', wordBreak: 'break-all', overflowWrap: 'anywhere', display: 'block', lineHeight: '1.4' }}>
+                                                {urlObj.search}
                                               </span>
                                             </div>
                                           )}
 
-                                          {brandMatch && (
-                                            <div>
-                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Захист брендів:</span>
-                                              <span style={{ color: brandMatch.isImpersonation ? 'var(--fx-red)' : 'var(--fx-green)' }}>
-                                                {brandMatch.isImpersonation ? `Підміна: ${brandMatch.targetBrand?.name}` : 'Легітимний ресурс'}
-                                              </span>
-                                            </div>
-                                          )}
-
+                                          {/* Запис у базі загроз */}
                                           {badMatch && (
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                              <span style={{ color: 'var(--fx-red)', display: 'block', marginBottom: '2px' }}>Запис у базі загроз:</span>
-                                              <span style={{ color: '#f87171' }}>{badMatch.threatType}: {badMatch.details || 'Шкідливий сайт'}</span>
+                                            <div style={{ 
+                                              background: 'rgba(239, 68, 68, 0.1)', 
+                                              border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                              borderRadius: '4px', 
+                                              padding: '6px 10px', 
+                                              minWidth: 0 
+                                            }}>
+                                              <span style={{ color: 'var(--fx-red)', display: 'block', marginBottom: '2px', fontWeight: 600 }}>Запис у базі загроз:</span>
+                                              <span style={{ color: '#fca5a5', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                                {badMatch.threatType}: {badMatch.details || 'Шкідливий сайт'}
+                                              </span>
                                             </div>
                                           )}
                                         </div>
