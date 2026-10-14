@@ -51,6 +51,12 @@ export async function GET(req: Request) {
         page,
         limit
       }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
   } catch (error) {
     console.error('Fetch Inbox Error:', error);

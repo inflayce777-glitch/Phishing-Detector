@@ -23,8 +23,12 @@ export async function POST(request) {
 
     // Parallel URL Scanning Worker
     if (urls && Array.isArray(urls)) {
-      const urlPromises = urls.map(async (rawUrl) => {
-        const cleanUrl = rawUrl.trim().replace(/^[`'"]+|[`'"]+$/g, '').replace(/[.,;:)\]}>`]+$/g, '');
+      const normalizedUrls = Array.from(new Set(
+        urls.map(u => String(u || '').replace(/&amp;/g, '&').trim().replace(/^[`'"]+|[`'"]+$/g, '').replace(/[.,;:)\]}>`]+$/g, ''))
+      )).filter(u => u.length > 5);
+
+      const urlPromises = normalizedUrls.map(async (rawUrl) => {
+        const cleanUrl = rawUrl;
 
         let hostname = '';
         try {

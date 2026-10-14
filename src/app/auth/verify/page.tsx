@@ -73,6 +73,12 @@ export default function VerifyLogin() {
             type="text" 
             value={token}
             onChange={e => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && token.length === 6 && !loading) {
+                e.preventDefault();
+                verify();
+              }
+            }}
             placeholder="000 000"
             className="w-full bg-gray-950 border border-gray-700 focus:border-cyan-500 outline-none text-white px-4 py-4 rounded text-center text-3xl tracking-[0.3em] font-bold"
           />

@@ -86,12 +86,30 @@ export const TRUSTED_APEX_DOMAINS = new Set([
   'instagram.com',
   'whatsapp.com',
   'fb.com',
+  'threads.net',
   'github.com',
   'gitlab.com',
   'stackoverflow.com',
+  'linkedin.com',
+  'lnkd.in',
   'wikipedia.org',
   'wikimedia.org',
-  'ukr.net'
+  'ukr.net',
+
+  // Verified Tech & Career Platforms
+  'djinni.co',
+  'dou.ua',
+  'kaggle.com',
+
+  // Verified Email Delivery & Communication Infrastructure
+  'intercom.com',
+  'intercom-clicks.com',
+  'intercom-mail.com',
+  'intercomcdn.com',
+  'sendgrid.net',
+  'mailchimp.com',
+  'mandrillapp.com',
+  'mailgun.org'
 ]);
 
 // Shared hosting / free subdomains where anyone can deploy apps - these must NOT inherit trust from apex!

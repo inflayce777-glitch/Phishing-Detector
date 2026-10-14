@@ -149,22 +149,6 @@ function ForensicDashboardContent() {
     }
   }, [emailId, session]);
 
-  // Save analysis result to Inbox Email if we are scanning an email
-  useEffect(() => {
-    if (state.value === 'complete_with_xai' && emailId) {
-       fetch('/api/inbox/analyze', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-           emailId,
-           oracleScore: state.context.oracleScore || 0,
-           oracleLabel: state.context.oracleVerdict || 'safe',
-           triggers: state.context.vectors
-         })
-       }).catch(err => console.error("Failed to save analysis to email:", err));
-    }
-  }, [state.value, state.context.vectors, emailId]);
-
   const processOcrFile = async (file: File) => {
     setShowUploadModal(false);
     setIsOcrLoading(true);
@@ -318,15 +302,47 @@ function ForensicDashboardContent() {
       threatLevel = Math.round(avgScore * 100);
   }
 
-  // ВЕРИФІКАЦІЯ ВІДПРАВНИКА: Якщо відправник перевірений (Google / Whitelist) і немає загроз у SafeBrowsing чи обфускації, загроза = 0
+  // ВЕРИФІКАЦІЯ ВІДПРАВНИКА: Якщо відправник перевірений (Google / Whitelist) і немає загроз у глобальних базах чи обфускації, загроза = 0
   if (state.context.isTrusted && safeBrowsingMatches.length === 0 && (!state.context.obfuscation || state.context.obfuscation.score === 0)) {
       threatLevel = 0;
   }
 
-  // КРИТИЧНИЙ ПЕРЕВИЗНАЧНИК: Якщо Safe Browsing знаходить загрозу, ризик миттєво 100%
-  if (safeBrowsingMatches.length > 0) {
+  // КРИТИЧНИЙ ПЕРЕВИЗНАЧНИК: Якщо глобальні репутаційні бази (URLhaus / Google / NXDOMAIN) виявляють підтверджену загрозу
+  const hasHardBlacklist = safeBrowsingMatches.some(m => 
+    m.threatType.includes('URLhaus') || 
+    m.threatType.includes('Safe Browsing') || 
+    m.threatType.includes('NXDOMAIN') ||
+    m.threatType.includes('MALWARE') ||
+    m.threatType.includes('SOCIAL_ENGINEERING')
+  );
+  const hasMlUrlThreat = safeBrowsingMatches.some(m => m.threatType.includes('ML-ФІШИНГОВИЙ URL'));
+
+  if (hasHardBlacklist) {
       threatLevel = 100;
+  } else if (hasMlUrlThreat && !state.context.isTrusted) {
+      threatLevel = Math.max(threatLevel, 80);
   }
+
+  // Save analysis result to Inbox Email if we are scanning an email
+  useEffect(() => {
+    if (state.value === 'complete_with_xai' && emailId) {
+       const isPhish = threatLevel > 70;
+       const isSpam = threatLevel > 40 && !isPhish;
+       const finalScore = isPhish ? (threatLevel / 100) : (isSpam ? (threatLevel / 100) : ((100 - threatLevel) / 100));
+       const finalLabel = isPhish ? 'phishing' : (isSpam ? (state.context.isSpam ? 'spam' : 'suspicious') : 'safe');
+
+       fetch('/api/inbox/analyze', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           emailId,
+           oracleScore: finalScore,
+           oracleLabel: finalLabel,
+           triggers: state.context.vectors
+         })
+       }).catch(err => console.error("Failed to save analysis to email:", err));
+    }
+  }, [state.value, state.context.vectors, emailId, threatLevel, state.context.isSpam]);
 
   const renderHighlightedText = () => {
     if (!activeNode || !activeNode.sentences || activeNode.sentences.length === 0) return inputValue;
@@ -532,7 +548,10 @@ function ForensicDashboardContent() {
                 )}
 
                 {safeBrowsingMatches.length > 0 && (
-                  <Panel title="Google Safe Browsing: Критична загроза!" style={{ border: '1px solid var(--fx-red)' }}>
+                  <Panel 
+                    title={hasHardBlacklist ? "Глобальні чорні списки загроз (Критично)" : "Репутаційний аналіз посилань та інфраструктури"} 
+                    style={{ border: hasHardBlacklist ? '1px solid var(--fx-red)' : '1px solid var(--fx-amber)' }}
+                  >
                     <div style={{ padding: '18px', color: '#ffb3b3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {safeBrowsingMatches.map((match, idx) => {
                         const threatTypes: Record<string, string> = {
@@ -542,13 +561,23 @@ function ForensicDashboardContent() {
                           'POTENTIALLY_HARMFUL_APPLICATION': 'Потенційно Небезпечний Додаток'
                         };
                         const explanation = threatTypes[match.threatType] || match.threatType;
+                        const isHard = match.threatType.includes('URLhaus') || match.threatType.includes('Safe Browsing') || match.threatType.includes('NXDOMAIN');
                         
                         return (
                           <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                            <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                            <ShieldAlert className={`w-5 h-5 shrink-0 mt-0.5 ${isHard ? 'text-red-500' : 'text-amber-400'}`} />
                             <div>
-                               <div style={{ marginBottom: '4px' }}>Посилання <strong>{match.threat?.url}</strong> блокується глобальною базою Google!</div>
-                               <div style={{ color: 'var(--fx-red)', fontWeight: 'bold' }}>Тип загрози: {explanation}</div>
+                               <div style={{ marginBottom: '4px', color: '#ffffff' }}>
+                                 Посилання <strong>{match.threat?.url}</strong> {isHard ? 'блокується глобальними базами безпеки:' : 'має попередження аналізатора:'}
+                               </div>
+                               <div style={{ color: isHard ? 'var(--fx-red)' : '#f39c12', fontWeight: 'bold' }}>
+                                 Тип загрози: {explanation}
+                               </div>
+                               {match.details && (
+                                 <div style={{ color: 'var(--fx-muted)', fontSize: '11px', marginTop: '2px' }}>
+                                   {match.details}
+                                 </div>
+                               )}
                             </div>
                           </div>
                         );
@@ -570,37 +599,45 @@ function ForensicDashboardContent() {
                               <Fingerprint className="w-4 h-4 text-cyan-400" />
                               <span>Автентичність відправника (RFC 7208 / 6376 / 7489)</span>
                             </div>
-                            <span style={{ 
-                              fontSize: '11px', 
-                              padding: '3px 10px', 
-                              borderRadius: '9999px',
-                              background: state.context.emailAuth.isSpoofed ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
-                              border: `1px solid ${state.context.emailAuth.isSpoofed ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}`,
-                              color: state.context.emailAuth.isSpoofed ? '#f87171' : '#34d399',
-                              fontWeight: 600,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px'
-                            }}>
-                              {state.context.emailAuth.isSpoofed ? (
-                                <>
-                                  <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-                                  <span>Виявлено спуфінг</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                                  <span>Верифіковано</span>
-                                </>
-                              )}
-                            </span>
+                            <div className="relative group cursor-help inline-block">
+                              <span style={{ 
+                                fontSize: '11px', 
+                                padding: '3px 10px', 
+                                borderRadius: '9999px',
+                                background: state.context.emailAuth.isSpoofed ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                                border: `1px solid ${state.context.emailAuth.isSpoofed ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}`,
+                                color: state.context.emailAuth.isSpoofed ? '#f87171' : '#34d399',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}>
+                                {state.context.emailAuth.isSpoofed ? (
+                                  <>
+                                    <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                                    <span>Виявлено спуфінг</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>Верифіковано</span>
+                                  </>
+                                )}
+                              </span>
+                              <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden group-hover:block z-50 w-72 p-2.5 bg-gray-950 border border-gray-700 rounded-lg shadow-2xl text-xs text-gray-300 leading-relaxed">
+                                {state.context.emailAuth.isSpoofed ? (
+                                  <span className="text-red-400 font-medium">Увага! Сервер відправника або цифровий підпис не відповідає заявленому домену. Виявлено ознаки підміни адреси (спуфінгу).</span>
+                                ) : (
+                                  <span className="text-emerald-400 font-medium">Лист успішно пройшов комплексну перевірку автентичності. Всі цифрові підписи валідні, ознак підміни (спуфінгу) не виявлено.</span>
+                                )}
+                                <div className="absolute top-full right-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                              </div>
+                            </div>
                           </div>
 
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
-                            <div 
-                              className="group relative cursor-help"
-                              title="SPF (Sender Policy Framework) — захисний протокол, який перевіряє, чи дозволено поштовому серверу відправляти листи від імені цього домену."
-                            >
+                            {/* SPF Badge with rich tooltip */}
+                            <div className="relative group cursor-help inline-block">
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.spf.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -610,14 +647,26 @@ function ForensicDashboardContent() {
                               }}>
                                 {state.context.emailAuth.spf.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
                                 <span>SPF: {getSpfLabel(state.context.emailAuth.spf.status)}</span>
-                                <Info className="w-3 h-3 text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                                <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
                               </span>
+                              <div className="pointer-events-none absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
+                                <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                  <Fingerprint className="w-3.5 h-3.5" />
+                                  SPF (Sender Policy Framework)
+                                </div>
+                                <div className="text-gray-300 mb-2 leading-relaxed">
+                                  Міжнародний поштовий стандарт (RFC 7208). Перевіряє у DNS-записах домену, чи має сервер-відправник легітимне право надсилати листи від цього імені.
+                                </div>
+                                <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                  <span>Результат: <strong className={state.context.emailAuth.spf.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getSpfLabel(state.context.emailAuth.spf.status)}</strong></span>
+                                  <span>RFC 7208</span>
+                                </div>
+                                <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                              </div>
                             </div>
 
-                            <div 
-                              className="group relative cursor-help"
-                              title="DKIM (DomainKeys Identified Mail) — цифровий криптографічний підпис відправника, що гарантує цілісність листа під час доставки."
-                            >
+                            {/* DKIM Badge with rich tooltip */}
+                            <div className="relative group cursor-help inline-block">
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.dkim.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -627,14 +676,26 @@ function ForensicDashboardContent() {
                               }}>
                                 {state.context.emailAuth.dkim.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
                                 <span>DKIM: {getDkimLabel(state.context.emailAuth.dkim.status)}</span>
-                                <Info className="w-3 h-3 text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                                <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
                               </span>
+                              <div className="pointer-events-none absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
+                                <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                  <Fingerprint className="w-3.5 h-3.5" />
+                                  DKIM (DomainKeys Identified Mail)
+                                </div>
+                                <div className="text-gray-300 mb-2 leading-relaxed">
+                                  Криптографічний цифровий підпис листа (RFC 6376). Гарантує цілісність вмісту і доводить, що лист не був перехоплений або змінений зловмисниками в дорозі.
+                                </div>
+                                <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                  <span>Результат: <strong className={state.context.emailAuth.dkim.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getDkimLabel(state.context.emailAuth.dkim.status)}</strong></span>
+                                  <span>RFC 6376</span>
+                                </div>
+                                <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                              </div>
                             </div>
 
-                            <div 
-                              className="group relative cursor-help"
-                              title="DMARC (Domain-based Message Authentication) — політика захисту від підробки адреси, яка вказує провайдерам, як обробляти листи з підозрілим SPF/DKIM."
-                            >
+                            {/* DMARC Badge with rich tooltip */}
+                            <div className="relative group cursor-help inline-block">
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -644,8 +705,22 @@ function ForensicDashboardContent() {
                               }}>
                                 {state.context.emailAuth.dmarc.alignment === 'aligned' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
                                 <span>DMARC: {getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</span>
-                                <Info className="w-3 h-3 text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                                <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
                               </span>
+                              <div className="pointer-events-none absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
+                                <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                  <Fingerprint className="w-3.5 h-3.5" />
+                                  DMARC (Domain-based Authentication)
+                                </div>
+                                <div className="text-gray-300 mb-2 leading-relaxed">
+                                  Політика поштової відповідності (RFC 7489). Пов'язує SPF і DKIM з адресою у заголовку "From", захищаючи користувачів від фішингової підміни імені відомих брендів.
+                                </div>
+                                <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                  <span>Результат: <strong className={state.context.emailAuth.dmarc.alignment === 'aligned' ? 'text-emerald-400' : 'text-red-400'}>{getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</strong></span>
+                                  <span>RFC 7489</span>
+                                </div>
+                                <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                              </div>
                             </div>
                           </div>
 
@@ -983,6 +1058,12 @@ function ForensicDashboardContent() {
                       type="text" 
                       value={totpToken}
                       onChange={e => setTotpToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && totpToken.length === 6 && !securityLoading) {
+                          e.preventDefault();
+                          verifySetup();
+                        }
+                      }}
                       placeholder="000000"
                       className="bg-gray-950 border border-gray-700 text-white px-4 py-2 rounded flex-1 text-center text-xl tracking-[0.5em] outline-none focus:border-cyan-500"
                     />

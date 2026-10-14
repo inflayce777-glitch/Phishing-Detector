@@ -24,9 +24,11 @@ export default function Dashboard() {
   return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const fetchInbox = async () => {
+  const fetchInbox = async (targetPage = page) => {
     try {
-      const res = await fetch(`/api/inbox?page=${page}&limit=10&query=${encodeURIComponent(debouncedQuery)}`);
+      const res = await fetch(`/api/inbox?page=${targetPage}&limit=10&query=${encodeURIComponent(debouncedQuery)}&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
       const data = await res.json();
       if (data.success) {
         setEmails(data.emails);
@@ -42,11 +44,14 @@ export default function Dashboard() {
   const syncEmails = async () => {
     setSyncing(true);
     try {
-      const res = await fetch("/api/inbox/sync", { method: "POST" });
+      const res = await fetch("/api/inbox/sync", { 
+        method: "POST",
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       const data = await res.json();
-      if (data.success && data.synced >= 0) {
+      if (data.success) {
         setPage(1);
-        await fetchInbox();
+        await fetchInbox(1);
       }
     } catch (error) {
       console.error("Failed to sync", error);
