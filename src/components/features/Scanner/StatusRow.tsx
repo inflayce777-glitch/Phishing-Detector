@@ -71,27 +71,15 @@ export const StatusRow = ({
           </button>
 
           {showMlDetails && isOnline && (
-            <div className="absolute left-0 top-full mt-1 w-64 bg-zinc-950 border border-emerald-500/30 rounded shadow-2xl z-50 p-2.5 font-mono text-[11px] text-zinc-300">
+            <div className="absolute left-0 top-full mt-1 w-72 bg-zinc-950 border border-emerald-500/30 rounded shadow-2xl z-50 p-2.5 font-mono text-[11px] text-zinc-300">
               <div className="flex items-center gap-1.5 text-emerald-400 font-bold mb-1.5 border-b border-emerald-500/20 pb-1">
                 <Activity className="w-3.5 h-3.5" />
-                <span>Нейромережеве ядро (D4/D5)</span>
+                <span>Нейромережеве ядро</span>
               </div>
               <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Пристрій:</span>
-                  <span className="text-zinc-200">{mlHealth?.gpu_name || mlHealth?.device || 'CUDA'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Email Text F1:</span>
-                  <span className="text-emerald-400 font-semibold">{((mlHealth?.metrics?.text_email_f1 || 0.939) * 100).toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">URL Grambeddings F1:</span>
-                  <span className="text-emerald-400 font-semibold">{((mlHealth?.metrics?.url_f1 || 0.931) * 100).toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Мови:</span>
-                  <span className="text-cyan-400">50+ (UK, EN, RU...)</span>
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-zinc-500 shrink-0">Пристрій:</span>
+                  <span className="text-zinc-200 text-right">{mlHealth?.gpu_name || mlHealth?.device || 'CUDA'}</span>
                 </div>
               </div>
             </div>
