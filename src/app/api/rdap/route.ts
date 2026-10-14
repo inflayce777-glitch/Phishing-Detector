@@ -11,10 +11,11 @@ export interface RdapDomainResponse {
   registrar: string | null;
   status: 'mature' | 'newly_registered' | 'critical_0day' | 'unknown' | 'trusted_infrastructure';
   details: string;
+  source?: 'rdap' | 'domainee' | 'trusted_fallback' | 'cache';
   cached?: boolean;
 }
 
-// In-Memory Cache with 24-Hour TTL to prevent rate-limiting (HTTP 429) from ICANN RDAP servers
+// In-Memory Cache with 24-Hour TTL to prevent rate-limiting from registry servers
 const rdapCache = new Map<string, { data: RdapDomainResponse; expiresAt: number }>();
 const RDAP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -40,98 +41,82 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ...cached.data, cached: true });
   }
 
-  // 2. Fast check for trusted infrastructure (Google, Microsoft, 150k dataset, etc.)
-  if (isServerTrustedDomain(cleanDomain)) {
-    const res: RdapDomainResponse = {
-      domain: cleanDomain,
-      ageDays: 7300, // 20+ years
-      registrationDate: '1997-01-01T00:00:00Z',
-      expirationDate: '2030-01-01T00:00:00Z',
-      isNewlyRegistered: false,
-      isCritical0Day: false,
-      registrar: 'Верифікована глобальна інфраструктура',
-      status: 'trusted_infrastructure',
-      details: 'Домен належить до верифікованої глобальної інфраструктури з багаторічною історією.'
-    };
-    rdapCache.set(cleanDomain, { data: res, expiresAt: Date.now() + RDAP_CACHE_TTL_MS });
-    return NextResponse.json(res);
-  }
+  const isTrusted = isServerTrustedDomain(cleanDomain);
+  let registrationDateStr: string | null = null;
+  let expirationDateStr: string | null = null;
+  let registrarName: string | null = null;
+  let resolvedSource: RdapDomainResponse['source'] = undefined;
 
-  // 3. Query ICANN Universal RDAP router
+  // 2. Primary Engine: Official ICANN RDAP (rdap.org with proper User-Agent)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const rdapUrl = `https://rdap.org/domain/${cleanDomain}`;
     const response = await fetch(rdapUrl, {
       signal: controller.signal,
       headers: {
-        'Accept': 'application/rdap+json, application/json'
+        'Accept': 'application/rdap+json, application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 (PhishingDetector/1.0)'
       }
     });
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const fallbackRes: RdapDomainResponse = {
-        domain: cleanDomain,
-        ageDays: null,
-        registrationDate: null,
-        expirationDate: null,
-        isNewlyRegistered: false,
-        isCritical0Day: false,
-        registrar: null,
-        status: 'unknown',
-        details: `Реєстраційні дані RDAP недоступні або реєстр повернув статус ${response.status}.`
-      };
-      // Cache unknown status for 15 minutes to prevent rapid retry spamming
-      rdapCache.set(cleanDomain, { data: fallbackRes, expiresAt: Date.now() + 15 * 60 * 1000 });
-      return NextResponse.json(fallbackRes);
-    }
+    if (response.ok) {
+      const data = await response.json();
+      const events: Array<{ eventAction: string; eventDate: string }> = data.events || [];
 
-    const data = await response.json();
-    const events: Array<{ eventAction: string; eventDate: string }> = data.events || [];
-
-    let registrationDateStr: string | null = null;
-    let expirationDateStr: string | null = null;
-
-    for (const ev of events) {
-      const action = (ev.eventAction || '').toLowerCase();
-      if (action === 'registration' || action === 'registered') {
-        registrationDateStr = ev.eventDate;
-      } else if (action === 'expiration' || action === 'expires') {
-        expirationDateStr = ev.eventDate;
-      }
-    }
-
-    // Try finding registrar entity name
-    let registrarName: string | null = null;
-    if (Array.isArray(data.entities)) {
-      for (const ent of data.entities) {
-        if (Array.isArray(ent.roles) && ent.roles.includes('registrar')) {
-          registrarName = ent.vcardArray?.[1]?.find((item: any) => item[0] === 'fn')?.[3] || ent.handle || null;
-          break;
+      for (const ev of events) {
+        const action = (ev.eventAction || '').toLowerCase();
+        if (action === 'registration' || action === 'registered') {
+          registrationDateStr = ev.eventDate;
+        } else if (action === 'expiration' || action === 'expires') {
+          expirationDateStr = ev.eventDate;
         }
       }
-    }
 
-    if (!registrationDateStr) {
-      const noDateRes: RdapDomainResponse = {
-        domain: cleanDomain,
-        ageDays: null,
-        registrationDate: null,
-        expirationDate: expirationDateStr,
-        isNewlyRegistered: false,
-        isCritical0Day: false,
-        registrar: registrarName,
-        status: 'unknown',
-        details: 'У відповіді RDAP відсутня точна дата первинної реєстрації.'
-      };
-      rdapCache.set(cleanDomain, { data: noDateRes, expiresAt: Date.now() + 60 * 60 * 1000 });
-      return NextResponse.json(noDateRes);
-    }
+      if (Array.isArray(data.entities)) {
+        for (const ent of data.entities) {
+          if (Array.isArray(ent.roles) && ent.roles.includes('registrar')) {
+            registrarName = ent.vcardArray?.[1]?.find((item: any) => item[0] === 'fn')?.[3] || ent.handle || null;
+            break;
+          }
+        }
+      }
 
-    // Calculate age in days
+      if (registrationDateStr) {
+        resolvedSource = 'rdap';
+      }
+    }
+  } catch (err: any) {
+    // Continue to fallback
+  }
+
+  // 3. Secondary Engine: Fast Keyless Domain Age API (domainee.dev fallback)
+  if (!registrationDateStr) {
+    try {
+      const domaineeRes = await fetch(`https://api.domainee.dev/v1/tools/domain-age-checker?domain=${encodeURIComponent(cleanDomain)}`, {
+        signal: AbortSignal.timeout(3500),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 (PhishingDetector/1.0)'
+        }
+      });
+      if (domaineeRes.ok) {
+        const dJson = await domaineeRes.json();
+        if (dJson?.ok && dJson?.data?.created) {
+          registrationDateStr = dJson.data.created;
+          expirationDateStr = dJson.data.expires || expirationDateStr;
+          resolvedSource = 'domainee';
+        }
+      }
+    } catch (e) {
+      // Continue
+    }
+  }
+
+  // 4. If date resolved, calculate true age
+  if (registrationDateStr) {
     const regDate = new Date(registrationDateStr);
     const now = new Date();
     const diffMs = now.getTime() - regDate.getTime();
@@ -140,15 +125,17 @@ export async function GET(req: NextRequest) {
     const isCritical0Day = ageDays <= 14;
     const isNewlyRegistered = ageDays <= 30;
 
-    let status: RdapDomainResponse['status'] = 'mature';
+    let status: RdapDomainResponse['status'] = isTrusted ? 'trusted_infrastructure' : 'mature';
     let details = `Домен створено ${ageDays} днів тому (${regDate.toISOString().split('T')[0]}).`;
 
-    if (isCritical0Day) {
+    if (isCritical0Day && !isTrusted) {
       status = 'critical_0day';
       details = `Критичний ризик: домен зареєстровано лише ${ageDays} днів тому. Понад 80% свіжих фішингових кампаній використовують домени віком до 14 днів!`;
-    } else if (isNewlyRegistered) {
+    } else if (isNewlyRegistered && !isTrusted) {
       status = 'newly_registered';
       details = `Підвищений ризик: домен створено нещодавно (${ageDays} днів тому). Вік менше 30 днів є класичним маркером тимчасових дроп-доменів.`;
+    } else if (isTrusted) {
+      details = `Домен створено ${ageDays} днів тому (${regDate.toISOString().split('T')[0]}). Верифікована глобальна інфраструктура.`;
     }
 
     const finalRes: RdapDomainResponse = {
@@ -156,27 +143,49 @@ export async function GET(req: NextRequest) {
       ageDays,
       registrationDate: registrationDateStr,
       expirationDate: expirationDateStr,
-      isNewlyRegistered,
-      isCritical0Day,
-      registrar: registrarName,
+      isNewlyRegistered: !isTrusted && isNewlyRegistered,
+      isCritical0Day: !isTrusted && isCritical0Day,
+      registrar: registrarName || (isTrusted ? 'Верифікована глобальна інфраструктура' : 'Офіційний реєстратор'),
       status,
-      details
+      details,
+      source: resolvedSource
     };
 
     rdapCache.set(cleanDomain, { data: finalRes, expiresAt: Date.now() + RDAP_CACHE_TTL_MS });
     return NextResponse.json(finalRes);
-  } catch (err: any) {
-    console.error('RDAP lookup error:', err.message);
-    return NextResponse.json({
+  }
+
+  // 5. Fallback for trusted infrastructure when RDAP registry has strict rate-limiting
+  if (isTrusted) {
+    const trustedFallback: RdapDomainResponse = {
       domain: cleanDomain,
       ageDays: null,
       registrationDate: null,
       expirationDate: null,
       isNewlyRegistered: false,
       isCritical0Day: false,
-      registrar: null,
-      status: 'unknown',
-      details: 'Таймаут або мережева помилка під час звернення до серверів RDAP.'
-    } as RdapDomainResponse);
+      registrar: 'Верифікована глобальна інфраструктура',
+      status: 'trusted_infrastructure',
+      details: 'Домен підтверджено у базі довіреної глобальної інфраструктури (реєстраційні сервери тимчасово обмежили зовнішні запити).',
+      source: 'trusted_fallback'
+    };
+    rdapCache.set(cleanDomain, { data: trustedFallback, expiresAt: Date.now() + 2 * 60 * 60 * 1000 });
+    return NextResponse.json(trustedFallback);
   }
+
+  // 6. Unknown domain fallback
+  const unknownRes: RdapDomainResponse = {
+    domain: cleanDomain,
+    ageDays: null,
+    registrationDate: null,
+    expirationDate: null,
+    isNewlyRegistered: false,
+    isCritical0Day: false,
+    registrar: null,
+    status: 'unknown',
+    details: 'Реєстраційні дані RDAP недоступні або TLD не підтримує публічний протокол RDAP.',
+    source: 'rdap'
+  };
+  rdapCache.set(cleanDomain, { data: unknownRes, expiresAt: Date.now() + 30 * 60 * 1000 });
+  return NextResponse.json(unknownRes);
 }

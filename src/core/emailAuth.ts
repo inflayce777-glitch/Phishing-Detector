@@ -8,22 +8,24 @@
 export interface EmailAuthResult {
   hasHeaders: boolean;
   spf: {
-    status: 'pass' | 'fail' | 'softfail' | 'neutral' | 'none';
+    status: 'pass' | 'fail' | 'softfail' | 'neutral' | 'none' | 'dns_active' | 'missing';
     details: string;
     domain?: string;
     ip?: string;
+    record?: string;
   };
   dkim: {
-    status: 'pass' | 'fail' | 'none';
+    status: 'pass' | 'fail' | 'none' | 'dns_active';
     details: string;
     domain?: string;
     selector?: string;
   };
   dmarc: {
-    status: 'pass' | 'fail' | 'none';
+    status: 'pass' | 'fail' | 'none' | 'dns_active' | 'missing';
     policy: 'none' | 'quarantine' | 'reject' | 'unspecified';
     details: string;
     alignment: 'aligned' | 'mismatched' | 'unknown';
+    record?: string;
   };
   isSpoofed: boolean;
   spoofingReason?: string;
@@ -57,7 +59,7 @@ export function analyzeEmailAuthentication(rawText: string, providedSender?: str
 
   if (!rawText) return result;
 
-  const isEmailWithHeaders = /(?:Authentication-Results|Received-SPF|DKIM-Signature|Return-Path|MIME-Version|Received:)/i.test(rawText);
+  const isEmailWithHeaders = /(?:Authentication-Results|ARC-Authentication-Results|Received-SPF|DKIM-Signature|Return-Path|MIME-Version|Received:)/i.test(rawText);
   if (!isEmailWithHeaders) {
     return result;
   }
@@ -90,9 +92,9 @@ export function analyzeEmailAuthentication(rawText: string, providedSender?: str
     };
   }
 
-  // 2. Parse Authentication-Results
-  const authResultsMatch = rawText.match(/(?:^|\n)Authentication-Results:[^\n]+(?:\n\s+[^\n]+)*/i);
-  const authHeader = authResultsMatch ? authResultsMatch[0].replace(/\r?\n\s+/g, ' ') : '';
+  // 2. Parse Authentication-Results & ARC-Authentication-Results
+  const authResultsMatch = rawText.match(/(?:^|\n)(?:Authentication-Results|ARC-Authentication-Results):[^\n]+(?:\n\s+[^\n]+)*/gi);
+  const authHeader = authResultsMatch ? authResultsMatch.join(' ').replace(/\r?\n\s+/g, ' ') : '';
 
   // 3. Parse Received-SPF
   const receivedSpfMatch = rawText.match(/(?:^|\n)Received-SPF:[^\n]+(?:\n\s+[^\n]+)*/i);

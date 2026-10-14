@@ -209,6 +209,46 @@ const runInferenceActor = fromPromise(
 
     // 3. Forensic Email Authentication (SPF, DKIM, DMARC Alignment, BEC Spoofing)
     const emailAuth = analyzeEmailAuthentication(input.rawText || text, input.senderEmail);
+
+    // Live Server-Side DNS & Header Verification via /api/email-auth
+    const effectiveSender = heuristics.effectiveSender || input.senderEmail || emailAuth.visibleFromDomain || '';
+    const senderDomain = effectiveSender.includes('@') ? effectiveSender.split('@')[1] : effectiveSender;
+
+    if (senderDomain && senderDomain.includes('.') && !senderDomain.includes('=')) {
+      try {
+        const authRes = await fetch('/api/email-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            domain: senderDomain,
+            senderEmail: effectiveSender,
+            rawHeaders: input.rawText || text
+          }),
+          signal: AbortSignal.timeout(3500)
+        });
+
+        if (authRes.ok) {
+          const liveAuth = await authRes.json();
+          if (liveAuth.spf && liveAuth.spf.status !== 'none') {
+            emailAuth.spf = liveAuth.spf;
+          }
+          if (liveAuth.dkim && liveAuth.dkim.status !== 'none') {
+            emailAuth.dkim = liveAuth.dkim;
+          }
+          if (liveAuth.dmarc && liveAuth.dmarc.status !== 'none') {
+            emailAuth.dmarc = liveAuth.dmarc;
+          }
+          if (liveAuth.isSpoofed) {
+            emailAuth.isSpoofed = true;
+            emailAuth.spoofingReason = liveAuth.spoofingReason;
+          }
+          emailAuth.hasHeaders = true;
+        }
+      } catch (e) {
+        // Fallback gracefully if network call times out
+      }
+    }
+
     if (emailAuth.hasHeaders) {
       if (emailAuth.isSpoofed) {
         heuristics.vectors.push({
@@ -219,7 +259,7 @@ const runInferenceActor = fromPromise(
           color: '#ff003c'
         });
         finalScore = Math.max(finalScore, 0.95);
-      } else if (emailAuth.dmarc.status === 'pass' && !emailAuth.isSpoofed) {
+      } else if ((emailAuth.dmarc.status === 'pass' || emailAuth.dmarc.status === 'dns_active') && !emailAuth.isSpoofed) {
         heuristics.isTrusted = true;
       }
     }

@@ -250,9 +250,11 @@ function ForensicDashboardContent() {
   const getSpfLabel = (status: string) => {
     const s = (status || '').toLowerCase();
     if (s === 'pass') return 'Пройдено';
+    if (s === 'dns_active') return 'Захищено в DNS';
     if (s === 'fail') return 'Невдача';
     if (s === 'softfail') return "М'яка невдача";
     if (s === 'neutral') return 'Нейтрально';
+    if (s === 'missing') return 'Відсутній у DNS';
     if (s === 'none') return 'Відсутній';
     return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Невідомо';
   };
@@ -260,15 +262,19 @@ function ForensicDashboardContent() {
   const getDkimLabel = (status: string) => {
     const s = (status || '').toLowerCase();
     if (s === 'pass') return 'Пройдено';
+    if (s === 'dns_active') return 'Декларується';
     if (s === 'fail') return 'Невдача';
     if (s === 'none') return 'Відсутній';
     return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Невідомо';
   };
 
-  const getDmarcLabel = (alignment: string) => {
+  const getDmarcLabel = (alignment: string, status?: string) => {
     const a = (alignment || '').toLowerCase();
-    if (a === 'aligned') return 'Співпадає';
-    if (a === 'unaligned') return 'Невідповідність';
+    const s = (status || '').toLowerCase();
+    if (s === 'dns_active') return 'Активно в DNS';
+    if (a === 'aligned' || s === 'pass') return 'Співпадає';
+    if (a === 'unaligned' || s === 'fail') return 'Невідповідність';
+    if (s === 'missing') return 'Відсутній у DNS';
     if (a === 'unknown') return 'Невідомо';
     if (a === 'none') return 'Відсутній';
     return a ? a.charAt(0).toUpperCase() + a.slice(1) : 'Невідомо';
@@ -702,97 +708,108 @@ function ForensicDashboardContent() {
 
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                             {/* SPF Badge with SmartTooltip */}
-                            <SmartTooltip
-                              content={
-                                <div>
-                                  <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
-                                    <Fingerprint className="w-3.5 h-3.5" />
-                                    SPF (Sender Policy Framework)
-                                  </div>
-                                  <div className="text-gray-300 mb-2 leading-relaxed">
-                                    Міжнародний поштовий стандарт (RFC 7208). Перевіряє у DNS-записах домену, чи має сервер-відправник легітимне право надсилати листи від цього імені.
-                                  </div>
-                                  <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
-                                    <span>Результат: <strong className={state.context.emailAuth.spf.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getSpfLabel(state.context.emailAuth.spf.status)}</strong></span>
-                                    <span>RFC 7208</span>
-                                  </div>
-                                </div>
-                              }
-                            >
-                              <span style={{ 
-                                display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
-                                background: state.context.emailAuth.spf.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                                border: `1px solid ${state.context.emailAuth.spf.status === 'pass' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                                color: state.context.emailAuth.spf.status === 'pass' ? '#34d399' : '#f87171',
-                                fontSize: '11px'
-                              }}>
-                                {state.context.emailAuth.spf.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
-                                <span>SPF: {getSpfLabel(state.context.emailAuth.spf.status)}</span>
-                                <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
-                              </span>
-                            </SmartTooltip>
+                            {(() => {
+                              const isSpfGood = state.context.emailAuth.spf.status === 'pass' || state.context.emailAuth.spf.status === 'dns_active';
+                              const isSpfWarn = state.context.emailAuth.spf.status === 'softfail' || state.context.emailAuth.spf.status === 'neutral';
+                              const isDkimGood = state.context.emailAuth.dkim.status === 'pass' || state.context.emailAuth.dkim.status === 'dns_active';
+                              const isDmarcGood = state.context.emailAuth.dmarc.alignment === 'aligned' || state.context.emailAuth.dmarc.status === 'pass' || state.context.emailAuth.dmarc.status === 'dns_active';
 
-                            {/* DKIM Badge with SmartTooltip */}
-                            <SmartTooltip
-                              content={
-                                <div>
-                                  <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
-                                    <Fingerprint className="w-3.5 h-3.5" />
-                                    DKIM (DomainKeys Identified Mail)
-                                  </div>
-                                  <div className="text-gray-300 mb-2 leading-relaxed">
-                                    Криптографічний цифровий підпис листа (RFC 6376). Гарантує цілісність вмісту і доводить, що лист не був перехоплений або змінений зловмисниками в дорозі.
-                                  </div>
-                                  <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
-                                    <span>Результат: <strong className={state.context.emailAuth.dkim.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getDkimLabel(state.context.emailAuth.dkim.status)}</strong></span>
-                                    <span>RFC 6376</span>
-                                  </div>
-                                </div>
-                              }
-                            >
-                              <span style={{ 
-                                display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
-                                background: state.context.emailAuth.dkim.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                                border: `1px solid ${state.context.emailAuth.dkim.status === 'pass' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                                color: state.context.emailAuth.dkim.status === 'pass' ? '#34d399' : '#f87171',
-                                fontSize: '11px'
-                              }}>
-                                {state.context.emailAuth.dkim.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
-                                <span>DKIM: {getDkimLabel(state.context.emailAuth.dkim.status)}</span>
-                                <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
-                              </span>
-                            </SmartTooltip>
+                              return (
+                                <>
+                                  <SmartTooltip
+                                    content={
+                                      <div>
+                                        <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                          <Fingerprint className="w-3.5 h-3.5" />
+                                          SPF (Sender Policy Framework)
+                                        </div>
+                                        <div className="text-gray-300 mb-2 leading-relaxed">
+                                          {state.context.emailAuth.spf.details || "Міжнародний поштовий стандарт (RFC 7208). Перевіряє у DNS-записах домену, чи має сервер-відправник легітимне право надсилати листи від цього імені."}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                          <span>Результат: <strong className={isSpfGood ? 'text-emerald-400' : isSpfWarn ? 'text-amber-400' : 'text-red-400'}>{getSpfLabel(state.context.emailAuth.spf.status)}</strong></span>
+                                          <span>RFC 7208</span>
+                                        </div>
+                                      </div>
+                                    }
+                                  >
+                                    <span style={{ 
+                                      display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
+                                      background: isSpfGood ? 'rgba(16,185,129,0.1)' : isSpfWarn ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',
+                                      border: `1px solid ${isSpfGood ? 'rgba(16,185,129,0.3)' : isSpfWarn ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                      color: isSpfGood ? '#34d399' : isSpfWarn ? '#fbbf24' : '#f87171',
+                                      fontSize: '11px'
+                                    }}>
+                                      {isSpfGood ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                                      <span>SPF: {getSpfLabel(state.context.emailAuth.spf.status)}</span>
+                                      <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
+                                    </span>
+                                  </SmartTooltip>
 
-                            {/* DMARC Badge with SmartTooltip */}
-                            <SmartTooltip
-                              content={
-                                <div>
-                                  <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
-                                    <Fingerprint className="w-3.5 h-3.5" />
-                                    DMARC (Domain-based Authentication)
-                                  </div>
-                                  <div className="text-gray-300 mb-2 leading-relaxed">
-                                    Політика поштової відповідності (RFC 7489). Пов'язує SPF і DKIM з адресою у заголовку "From", захищаючи користувачів від фішингової підміни імені відомих брендів.
-                                  </div>
-                                  <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
-                                    <span>Результат: <strong className={state.context.emailAuth.dmarc.alignment === 'aligned' ? 'text-emerald-400' : 'text-red-400'}>{getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</strong></span>
-                                    <span>RFC 7489</span>
-                                  </div>
-                                </div>
-                              }
-                            >
-                              <span style={{ 
-                                display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
-                                background: state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                                border: `1px solid ${state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                                color: state.context.emailAuth.dmarc.alignment === 'aligned' ? '#34d399' : '#f87171',
-                                fontSize: '11px'
-                              }}>
-                                {state.context.emailAuth.dmarc.alignment === 'aligned' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
-                                <span>DMARC: {getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</span>
-                                <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
-                              </span>
-                            </SmartTooltip>
+                                  {/* DKIM Badge with SmartTooltip */}
+                                  <SmartTooltip
+                                    content={
+                                      <div>
+                                        <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                          <Fingerprint className="w-3.5 h-3.5" />
+                                          DKIM (DomainKeys Identified Mail)
+                                        </div>
+                                        <div className="text-gray-300 mb-2 leading-relaxed">
+                                          {state.context.emailAuth.dkim.details || "Криптографічний цифровий підпис листа (RFC 6376). Гарантує цілісність вмісту і доводить, що лист не був перехоплений або змінений зловмисниками в дорозі."}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                          <span>Результат: <strong className={isDkimGood ? 'text-emerald-400' : 'text-red-400'}>{getDkimLabel(state.context.emailAuth.dkim.status)}</strong></span>
+                                          <span>RFC 6376</span>
+                                        </div>
+                                      </div>
+                                    }
+                                  >
+                                    <span style={{ 
+                                      display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
+                                      background: isDkimGood ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                      border: `1px solid ${isDkimGood ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                      color: isDkimGood ? '#34d399' : '#f87171',
+                                      fontSize: '11px'
+                                    }}>
+                                      {isDkimGood ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                                      <span>DKIM: {getDkimLabel(state.context.emailAuth.dkim.status)}</span>
+                                      <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
+                                    </span>
+                                  </SmartTooltip>
+
+                                  {/* DMARC Badge with SmartTooltip */}
+                                  <SmartTooltip
+                                    content={
+                                      <div>
+                                        <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                          <Fingerprint className="w-3.5 h-3.5" />
+                                          DMARC (Domain-based Authentication)
+                                        </div>
+                                        <div className="text-gray-300 mb-2 leading-relaxed">
+                                          {state.context.emailAuth.dmarc.details || "Політика поштової відповідності (RFC 7489). Пов'язує SPF і DKIM з адресою у заголовку \"From\", захищаючи користувачів від фішингової підміни імені відомих брендів."}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                          <span>Результат: <strong className={isDmarcGood ? 'text-emerald-400' : 'text-red-400'}>{getDmarcLabel(state.context.emailAuth.dmarc.alignment, state.context.emailAuth.dmarc.status)}</strong></span>
+                                          <span>RFC 7489</span>
+                                        </div>
+                                      </div>
+                                    }
+                                  >
+                                    <span style={{ 
+                                      display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
+                                      background: isDmarcGood ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                      border: `1px solid ${isDmarcGood ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                      color: isDmarcGood ? '#34d399' : '#f87171',
+                                      fontSize: '11px'
+                                    }}>
+                                      {isDmarcGood ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                                      <span>DMARC: {getDmarcLabel(state.context.emailAuth.dmarc.alignment, state.context.emailAuth.dmarc.status)}</span>
+                                      <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
+                                    </span>
+                                  </SmartTooltip>
+                                </>
+                              );
+                            })()}
                           </div>
 
                           {state.context.emailAuth.spoofingReason && (
