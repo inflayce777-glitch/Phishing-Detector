@@ -23,6 +23,7 @@ import { VerdictPanel } from '@/components/features/Scanner/VerdictPanel';
 import { StatusRow } from '@/components/features/Scanner/StatusRow';
 import { Button } from '@/components/ui/Button';
 import { Panel } from '@/components/ui/Panel';
+import { SmartTooltip } from '@/components/ui/SmartTooltip/SmartTooltip';
 
 function BootingCore() {
   const { scene } = useGLTF('/models/data_core.glb');
@@ -600,7 +601,20 @@ function ForensicDashboardContent() {
                               <Fingerprint className="w-4 h-4 text-cyan-400" />
                               <span>Автентичність відправника (RFC 7208 / 6376 / 7489)</span>
                             </div>
-                            <div className="relative group cursor-help inline-block hover:z-50">
+                            <SmartTooltip
+                              variant="gray"
+                              content={
+                                state.context.emailAuth.isSpoofed ? (
+                                  <span className="text-red-400 font-medium leading-relaxed block">
+                                    Увага! Сервер відправника або цифровий підпис не відповідає заявленому домену. Виявлено ознаки підміни адреси (спуфінгу).
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-400 font-medium leading-relaxed block">
+                                    Лист успішно пройшов комплексну перевірку автентичності. Всі цифрові підписи валідні, ознак підміни (спуфінгу) не виявлено.
+                                  </span>
+                                )
+                              }
+                            >
                               <span style={{ 
                                 fontSize: '11px', 
                                 padding: '3px 10px', 
@@ -625,20 +639,28 @@ function ForensicDashboardContent() {
                                   </>
                                 )}
                               </span>
-                              <div className="pointer-events-none absolute top-full right-0 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-2.5 bg-gray-950 border border-gray-700 rounded-lg shadow-2xl text-xs text-gray-300 leading-relaxed">
-                                {state.context.emailAuth.isSpoofed ? (
-                                  <span className="text-red-400 font-medium">Увага! Сервер відправника або цифровий підпис не відповідає заявленому домену. Виявлено ознаки підміни адреси (спуфінгу).</span>
-                                ) : (
-                                  <span className="text-emerald-400 font-medium">Лист успішно пройшов комплексну перевірку автентичності. Всі цифрові підписи валідні, ознак підміни (спуфінгу) не виявлено.</span>
-                                )}
-                                <div className="absolute -top-1 right-6 w-2 h-2 bg-gray-950 border-t border-l border-gray-700 transform rotate-45" />
-                              </div>
-                            </div>
+                            </SmartTooltip>
                           </div>
 
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px', overflow: 'visible' }}>
-                            {/* SPF Badge with rich tooltip */}
-                            <div className="relative group cursor-help inline-block hover:z-50">
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                            {/* SPF Badge with SmartTooltip */}
+                            <SmartTooltip
+                              content={
+                                <div>
+                                  <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                    <Fingerprint className="w-3.5 h-3.5" />
+                                    SPF (Sender Policy Framework)
+                                  </div>
+                                  <div className="text-gray-300 mb-2 leading-relaxed">
+                                    Міжнародний поштовий стандарт (RFC 7208). Перевіряє у DNS-записах домену, чи має сервер-відправник легітимне право надсилати листи від цього імені.
+                                  </div>
+                                  <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                    <span>Результат: <strong className={state.context.emailAuth.spf.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getSpfLabel(state.context.emailAuth.spf.status)}</strong></span>
+                                    <span>RFC 7208</span>
+                                  </div>
+                                </div>
+                              }
+                            >
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.spf.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -648,26 +670,28 @@ function ForensicDashboardContent() {
                               }}>
                                 {state.context.emailAuth.spf.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
                                 <span>SPF: {getSpfLabel(state.context.emailAuth.spf.status)}</span>
-                                <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
+                                <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
                               </span>
-                              <div className="pointer-events-none absolute top-full left-0 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
-                                <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
-                                  <Fingerprint className="w-3.5 h-3.5" />
-                                  SPF (Sender Policy Framework)
-                                </div>
-                                <div className="text-gray-300 mb-2 leading-relaxed">
-                                  Міжнародний поштовий стандарт (RFC 7208). Перевіряє у DNS-записах домену, чи має сервер-відправник легітимне право надсилати листи від цього імені.
-                                </div>
-                                <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
-                                  <span>Результат: <strong className={state.context.emailAuth.spf.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getSpfLabel(state.context.emailAuth.spf.status)}</strong></span>
-                                  <span>RFC 7208</span>
-                                </div>
-                                <div className="absolute -top-1 left-6 w-2 h-2 bg-gray-950 border-t border-l border-cyan-500/50 transform rotate-45" />
-                              </div>
-                            </div>
+                            </SmartTooltip>
 
-                            {/* DKIM Badge with rich tooltip */}
-                            <div className="relative group cursor-help inline-block hover:z-50">
+                            {/* DKIM Badge with SmartTooltip */}
+                            <SmartTooltip
+                              content={
+                                <div>
+                                  <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                    <Fingerprint className="w-3.5 h-3.5" />
+                                    DKIM (DomainKeys Identified Mail)
+                                  </div>
+                                  <div className="text-gray-300 mb-2 leading-relaxed">
+                                    Криптографічний цифровий підпис листа (RFC 6376). Гарантує цілісність вмісту і доводить, що лист не був перехоплений або змінений зловмисниками в дорозі.
+                                  </div>
+                                  <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                    <span>Результат: <strong className={state.context.emailAuth.dkim.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getDkimLabel(state.context.emailAuth.dkim.status)}</strong></span>
+                                    <span>RFC 6376</span>
+                                  </div>
+                                </div>
+                              }
+                            >
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.dkim.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -677,26 +701,28 @@ function ForensicDashboardContent() {
                               }}>
                                 {state.context.emailAuth.dkim.status === 'pass' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
                                 <span>DKIM: {getDkimLabel(state.context.emailAuth.dkim.status)}</span>
-                                <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
+                                <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
                               </span>
-                              <div className="pointer-events-none absolute top-full left-0 sm:left-1/2 sm:-translate-x-1/4 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
-                                <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
-                                  <Fingerprint className="w-3.5 h-3.5" />
-                                  DKIM (DomainKeys Identified Mail)
-                                </div>
-                                <div className="text-gray-300 mb-2 leading-relaxed">
-                                  Криптографічний цифровий підпис листа (RFC 6376). Гарантує цілісність вмісту і доводить, що лист не був перехоплений або змінений зловмисниками в дорозі.
-                                </div>
-                                <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
-                                  <span>Результат: <strong className={state.context.emailAuth.dkim.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getDkimLabel(state.context.emailAuth.dkim.status)}</strong></span>
-                                  <span>RFC 6376</span>
-                                </div>
-                                <div className="absolute -top-1 left-6 sm:left-1/4 w-2 h-2 bg-gray-950 border-t border-l border-cyan-500/50 transform rotate-45" />
-                              </div>
-                            </div>
+                            </SmartTooltip>
 
-                            {/* DMARC Badge with rich tooltip */}
-                            <div className="relative group cursor-help inline-block hover:z-50">
+                            {/* DMARC Badge with SmartTooltip */}
+                            <SmartTooltip
+                              content={
+                                <div>
+                                  <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+                                    <Fingerprint className="w-3.5 h-3.5" />
+                                    DMARC (Domain-based Authentication)
+                                  </div>
+                                  <div className="text-gray-300 mb-2 leading-relaxed">
+                                    Політика поштової відповідності (RFC 7489). Пов'язує SPF і DKIM з адресою у заголовку "From", захищаючи користувачів від фішингової підміни імені відомих брендів.
+                                  </div>
+                                  <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
+                                    <span>Результат: <strong className={state.context.emailAuth.dmarc.alignment === 'aligned' ? 'text-emerald-400' : 'text-red-400'}>{getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</strong></span>
+                                    <span>RFC 7489</span>
+                                  </div>
+                                </div>
+                              }
+                            >
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -706,23 +732,9 @@ function ForensicDashboardContent() {
                               }}>
                                 {state.context.emailAuth.dmarc.alignment === 'aligned' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
                                 <span>DMARC: {getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</span>
-                                <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
+                                <Info className="w-3 h-3 text-cyan-400 opacity-70 hover:opacity-100 transition-opacity" />
                               </span>
-                              <div className="pointer-events-none absolute top-full right-0 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
-                                <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
-                                  <Fingerprint className="w-3.5 h-3.5" />
-                                  DMARC (Domain-based Authentication)
-                                </div>
-                                <div className="text-gray-300 mb-2 leading-relaxed">
-                                  Політика поштової відповідності (RFC 7489). Пов'язує SPF і DKIM з адресою у заголовку "From", захищаючи користувачів від фішингової підміни імені відомих брендів.
-                                </div>
-                                <div className="text-[10px] text-gray-400 border-t border-gray-800 pt-1 flex justify-between">
-                                  <span>Результат: <strong className={state.context.emailAuth.dmarc.alignment === 'aligned' ? 'text-emerald-400' : 'text-red-400'}>{getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</strong></span>
-                                  <span>RFC 7489</span>
-                                </div>
-                                <div className="absolute -top-1 right-6 w-2 h-2 bg-gray-950 border-t border-l border-cyan-500/50 transform rotate-45" />
-                              </div>
-                            </div>
+                            </SmartTooltip>
                           </div>
 
                           {state.context.emailAuth.spoofingReason && (
