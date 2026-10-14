@@ -20,8 +20,7 @@ export default function Dashboard() {
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
-    const confirmDelete = async () => { if (!emailToDelete) return; try { const res = await fetch(`/api/inbox/${emailToDelete}`, { method: "DELETE" }); const data = await res.json(); if (data.success) { fetchInbox(); } } catch (error) { console.error("Failed to delete", error); } finally { setEmailToDelete(null); } };
-  return () => clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const fetchInbox = async (targetPage = page) => {

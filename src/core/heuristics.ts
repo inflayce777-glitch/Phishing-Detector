@@ -200,11 +200,11 @@ export function analyzeCoreHeuristics(text: string, email: string, url: string):
 
     // --- 4. Obfuscation & Extraction (on clean text) ---
     if (/([a-zA-Z][а-яА-ЯіІїЇєЄґҐ]|[а-яА-ЯіІїЇєЄґҐ][a-zA-Z])/g.test(textToScan)) {
-      obfuscationFlags.push("Змішування кирилиці та латиниці (Гомогліфи)");
+      obfuscationFlags.push("Змішування кирилиці та латиниці (гомогліфи)");
       obfuscationScore += 0.3;
     }
     if (/(?<=[a-zA-Zа-яА-ЯіІїЇєЄґҐ])[\u200B-\u200D\uFEFF]+(?=[a-zA-Zа-яА-ЯіІїЇєЄґҐ])/g.test(textToScan)) {
-      obfuscationFlags.push("Приховані невидимі символи (Zero-Width Obfuscation)");
+      obfuscationFlags.push("Приховані невидимі символи (zero-width obfuscation)");
       obfuscationScore += 0.4;
     }
     if (/\b(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[q-z0-9]{39,59})\b/g.test(textToScan)) {
@@ -212,7 +212,7 @@ export function analyzeCoreHeuristics(text: string, email: string, url: string):
       obfuscationScore += 0.6;
     }
     if (/\b[a-zA-Z]*[vV][1!][aA@][gG][rR][aA@][a-zA-Z]*\b|\b[wW][0o][nN]\b|\b[pP][rR][1!][zZ][eE]\b/g.test(textToScan)) {
-      obfuscationFlags.push("Використання Leet Speak для обходу фільтрів");
+      obfuscationFlags.push("Використання leet speak для обходу фільтрів");
       obfuscationScore += 0.5;
     }
 

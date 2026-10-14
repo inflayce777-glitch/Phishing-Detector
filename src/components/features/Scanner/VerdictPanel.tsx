@@ -1,17 +1,42 @@
 'use client';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Panel } from '@/components/ui/Panel';
+import { 
+  ShieldAlert, ShieldCheck, Cpu, Globe, Fingerprint, 
+  ChevronDown, ChevronUp, Info, AlertTriangle, Layers
+} from 'lucide-react';
 import styles from './VerdictPanel.module.scss';
+
+export interface VerdictBreakdown {
+  mlScore?: number;
+  emailAuthStatus?: string;
+  isSpoofed?: boolean;
+  hasHardBlacklist?: boolean;
+  hasMlUrlThreat?: boolean;
+  obfuscationScore?: number;
+  triggersCount?: number;
+  isTrusted?: boolean;
+}
 
 interface VerdictPanelProps {
   threatLevel: number;
   isSpam?: boolean;
+  breakdown?: VerdictBreakdown;
+  onExportReport?: () => void;
 }
 
-export const VerdictPanel = ({ threatLevel, isSpam }: VerdictPanelProps) => {
+export const VerdictPanel = ({ 
+  threatLevel, 
+  isSpam, 
+  breakdown,
+  onExportReport 
+}: VerdictPanelProps) => {
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
   const getVerdictLabel = (level: number) => {
     if (level > 70) return 'Критична загроза';
-    if (level > 40) return isSpam ? 'Підозріло (Спам)' : 'Підозріло';
+    if (level > 40) return isSpam ? 'Підозріло (спам)' : 'Підозріло';
     return 'Безпечно';
   };
 
@@ -21,46 +46,206 @@ export const VerdictPanel = ({ threatLevel, isSpam }: VerdictPanelProps) => {
     return 'var(--fx-green)';
   };
 
+  const getVerdictDesc = (level: number) => {
+    if (level > 70) {
+      return 'Виявлено критичні ознаки фішингу, підміни відправника або шкідливого програмного забезпечення. Не пере переходьте за посиланнями та не передавайте дані.';
+    }
+    if (level > 40) {
+      return isSpam 
+        ? 'Повідомлення ідентифіковано як рекламну розсилку або спам-кампанію. Прямої деструктивної загрози немає, але контент є небажаним.'
+        : 'Повідомлення містить маніпулятивні патерни або неперевірені посилання. Рекомендується підвищена обережність.';
+    }
+    return 'Повідомлення успішно пройшло перевірку цифрових підписів, репутаційних баз та семантичного ядра. Загроз не виявлено.';
+  };
+
   return (
-    <Panel title="Висновок">
-      <div className={styles.verdictBody}>
-        <div className={styles.scorebox}>
-          <div className={`${styles.scoreRing} ${threatLevel < 40 ? styles.safe : ''}`}>
-            <span className={`${styles.scoreNum} ${threatLevel < 40 ? styles.safe : ''}`}>
-              {threatLevel}
-            </span>
-          </div>
-          <span className={styles.scoreSub}>Ризик / 100</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-          <h3
-            style={{
-              color: getVerdictColor(threatLevel),
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              margin: 0,
-            }}
+    <Panel 
+      title="Висновок"
+      headerRight={
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowBreakdown(!showBreakdown)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300"
+            style={{ cursor: 'pointer' }}
           >
-            {getVerdictLabel(threatLevel)}
-          </h3>
-          {threatLevel > 40 && threatLevel <= 70 && isSpam && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontFamily: 'var(--fx-mono)',
-                  padding: '2px 8px',
-                  borderRadius: '3px',
-                  background: 'rgba(243, 156, 18, 0.15)',
-                  border: '1px solid rgba(243, 156, 18, 0.4)',
-                  color: '#f39c12',
-                }}
+            <Layers className="w-3.5 h-3.5" />
+            <span>{showBreakdown ? 'Приховати деталізацію' : 'Деталізація ризику'}</span>
+            {showBreakdown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className={styles.verdictBody}>
+          <div className={styles.scorebox}>
+            <div 
+              className={`${styles.scoreRing} ${threatLevel < 40 ? styles.safe : ''}`}
+              style={{
+                borderColor: getVerdictColor(threatLevel),
+                boxShadow: `0 0 24px ${threatLevel > 70 ? 'rgba(255, 51, 102, 0.3)' : threatLevel > 40 ? 'rgba(243, 156, 18, 0.3)' : 'rgba(0, 255, 136, 0.25)'}`
+              }}
+            >
+              <span 
+                className={`${styles.scoreNum} ${threatLevel < 40 ? styles.safe : ''}`}
+                style={{ color: getVerdictColor(threatLevel) }}
               >
-                Масова розсилка / аутріч
+                {threatLevel}
               </span>
             </div>
-          )}
+            <span className={styles.scoreSub}>Ризик / 100</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h3
+                style={{
+                  color: getVerdictColor(threatLevel),
+                  fontWeight: 700,
+                  fontSize: '18px',
+                  letterSpacing: '0.02em',
+                  margin: 0,
+                }}
+              >
+                {getVerdictLabel(threatLevel)}
+              </h3>
+
+              {threatLevel > 40 && threatLevel <= 70 && isSpam && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontFamily: 'var(--fx-mono)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    background: 'rgba(243, 156, 18, 0.15)',
+                    border: '1px solid rgba(243, 156, 18, 0.4)',
+                    color: '#f39c12',
+                  }}
+                >
+                  Масова розсилка / спам
+                </span>
+              )}
+
+              {breakdown?.isTrusted && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontFamily: 'var(--fx-mono)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    color: '#34d399',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  Довірена інфраструктура
+                </span>
+              )}
+            </div>
+
+            <p style={{ margin: 0, color: 'var(--fx-muted)', fontSize: '13px', lineHeight: '1.5' }}>
+              {getVerdictDesc(threatLevel)}
+            </p>
+          </div>
         </div>
+
+        {/* Interactive Risk Decomposition Drawer */}
+        <AnimatePresence>
+          {showBreakdown && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div 
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.02)', 
+                  border: '1px solid rgba(108, 229, 220, 0.15)', 
+                  borderRadius: '6px', 
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--fx-cyan)', fontSize: '12px', fontWeight: 600 }}>
+                    <Info className="w-4 h-4 text-cyan-400" />
+                    <span>Факторна декомпозиція оцінки загрози</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--fx-muted)', fontFamily: 'var(--fx-mono)' }}>
+                    Підсумковий скор: {threatLevel}/100
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+                  {/* Factor 1: Email Auth */}
+                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <Fingerprint className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Автентичність</span>
+                    </div>
+                    <div className="font-semibold" style={{ color: breakdown?.isSpoofed ? 'var(--fx-red)' : 'var(--fx-green)' }}>
+                      {breakdown?.isSpoofed ? 'Спуфінг / Fail' : breakdown?.emailAuthStatus || 'Верифіковано'}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      {breakdown?.isSpoofed ? 'Провал перевірки SPF/DKIM' : 'Цифрові підписи валідні'}
+                    </div>
+                  </div>
+
+                  {/* Factor 2: NLP Core */}
+                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <Cpu className="w-3.5 h-3.5 text-purple-400" />
+                      <span>NLP Ядро</span>
+                    </div>
+                    <div className="font-semibold text-white">
+                      {breakdown?.mlScore !== undefined ? `${(breakdown.mlScore * 100).toFixed(1)}%` : '0%'}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      Семантичний скоринг тексту
+                    </div>
+                  </div>
+
+                  {/* Factor 3: URL & Infrastructure */}
+                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Репутація URL</span>
+                    </div>
+                    <div className="font-semibold" style={{ color: breakdown?.hasHardBlacklist ? 'var(--fx-red)' : breakdown?.hasMlUrlThreat ? '#f39c12' : 'var(--fx-green)' }}>
+                      {breakdown?.hasHardBlacklist ? 'Чорний список' : breakdown?.hasMlUrlThreat ? 'ML-підозра' : 'Чисті'}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      {breakdown?.hasHardBlacklist ? 'Занесено до баз загроз' : 'Перевірка DNS та Safe Browsing'}
+                    </div>
+                  </div>
+
+                  {/* Factor 4: Heuristics & Obfuscation */}
+                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Евристика</span>
+                    </div>
+                    <div className="font-semibold" style={{ color: (breakdown?.obfuscationScore || 0) > 0 ? 'var(--fx-red)' : 'var(--fx-green)' }}>
+                      {(breakdown?.obfuscationScore || 0) > 0 
+                        ? `Обфускація (+${Math.round((breakdown?.obfuscationScore || 0) * 100)}%)` 
+                        : (breakdown?.triggersCount ? `${breakdown.triggersCount} тригерів` : 'Без тригерів')}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      Аналіз прихованих символів та слів
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </Panel>
   );

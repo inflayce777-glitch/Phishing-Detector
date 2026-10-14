@@ -13,7 +13,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Mail, MessageSquare, Camera, ChevronDown, Shield, LogOut, History, Key, 
   ShieldAlert, ShieldCheck, ArrowLeft, CheckCircle, AlertTriangle, XCircle, 
-  Building, Calendar, Clock, Globe, Fingerprint, Lock, X, Info 
+  Building, Calendar, Clock, Globe, Fingerprint, Lock, X, Info, Download,
+  ExternalLink, ChevronRight
 } from "lucide-react";
 import { Header } from '@/components/layout/Header';
 import { Container } from '@/components/layout/Container';
@@ -55,6 +56,8 @@ function ForensicDashboardContent() {
   const [emailInput, setEmailInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [activeNode, setActiveNode] = useState<any | null>(null);
+  const [hoveredVectorId, setHoveredVectorId] = useState<string | null>(null);
+  const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   
   const [appMode, setAppMode] = useState<'email' | 'messenger'>('email');
@@ -344,6 +347,45 @@ function ForensicDashboardContent() {
        }).catch(err => console.error("Failed to save analysis to email:", err));
     }
   }, [state.value, state.context.vectors, emailId, threatLevel, state.context.isSpam]);
+  const exportForensicReport = () => {
+    const reportData = {
+      system: 'Cyber Threat Forensic Analyzer 2.0',
+      timestamp: new Date().toISOString(),
+      verdict: {
+        threatLevel,
+        label: getVerdictLabel(threatLevel),
+        isSpam: Boolean(state.context.isSpam),
+        isTrusted: Boolean(state.context.isTrusted)
+      },
+      sender: {
+        providedEmail: emailInput,
+        effectiveSender: state.context.senderEmail,
+        authentication: state.context.emailAuth
+      },
+      infrastructure: {
+        urls: state.context.extractedIndicators?.urls || [],
+        ips: state.context.extractedIndicators?.ips || [],
+        safeBrowsingMatches,
+        brandImpersonation: state.context.brandResults || [],
+        rdapDomainAges: state.context.rdapResults || {}
+      },
+      heuristics: {
+        obfuscation: state.context.obfuscation,
+        triggers: vectors.map(v => ({
+          trigger: v.trigger,
+          score: v.score,
+          explanation: v.explanation
+        }))
+      }
+    };
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `forensic-report-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(downloadUrl);
+  };
 
   const renderHighlightedText = () => {
     if (!activeNode || !activeNode.sentences || activeNode.sentences.length === 0) return inputValue;
@@ -465,7 +507,7 @@ function ForensicDashboardContent() {
                   onClick={() => router.push('/dashboard')}
                   className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 px-3 py-1 bg-cyan-950/20 transition-all rounded-sm"
                 >
-                  <ArrowLeft className="w-3 h-3" /> В Інбокс
+                  <ArrowLeft className="w-3 h-3" /> До інбоксу
                 </button>
               )}
             </Header>
@@ -504,6 +546,8 @@ function ForensicDashboardContent() {
                 safeBrowsingMatches={safeBrowsingMatches}
                 activeNode={activeNode}
                 setActiveNode={setActiveNode}
+                hoveredVectorId={hoveredVectorId}
+                setHoveredVectorId={setHoveredVectorId}
                 isTrusted={state.context.isTrusted}
               />
 
@@ -523,14 +567,28 @@ function ForensicDashboardContent() {
                 variants={containerVariants}
                 style={{ overflow: 'visible' }}
               >
-                <VerdictPanel threatLevel={threatLevel} isSpam={state.context.isSpam} />
+                <VerdictPanel 
+                  threatLevel={threatLevel} 
+                  isSpam={state.context.isSpam}
+                  breakdown={{
+                    mlScore: state.context.oracleScore,
+                    emailAuthStatus: state.context.emailAuth?.hasHeaders ? (state.context.emailAuth.isSpoofed ? 'Спуфінг / fail' : 'Верифіковано') : 'Відсутні заголовки',
+                    isSpoofed: state.context.emailAuth?.isSpoofed,
+                    hasHardBlacklist,
+                    hasMlUrlThreat,
+                    obfuscationScore: state.context.obfuscation?.score,
+                    triggersCount: vectors.length,
+                    isTrusted: state.context.isTrusted
+                  }}
+                  onExportReport={exportForensicReport}
+                />
 
                 {state.context.isTrusted && safeBrowsingMatches.length === 0 && (
                   <Panel title="Надійний відправник (BIMI / DMARC)" className="border-green-500">
                     <div style={{ padding: '18px', color: '#b3ffb3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                         <span>Домен відправника знаходиться в системному White-List і лист не містить ознак обфускації. Системне сповіщення верифіковано.</span>
+                         <span>Домен відправника знаходиться в системному білому списку і лист не містить ознак обфускації. Системне сповіщення верифіковано.</span>
                       </div>
                     </div>
                   </Panel>
@@ -551,16 +609,16 @@ function ForensicDashboardContent() {
 
                 {safeBrowsingMatches.length > 0 && (
                   <Panel 
-                    title={hasHardBlacklist ? "Глобальні чорні списки загроз (Критично)" : "Репутаційний аналіз посилань та інфраструктури"} 
+                    title={hasHardBlacklist ? "Глобальні чорні списки загроз (критично)" : "Репутаційний аналіз посилань та інфраструктури"} 
                     style={{ border: hasHardBlacklist ? '1px solid var(--fx-red)' : '1px solid var(--fx-amber)' }}
                   >
                     <div style={{ padding: '18px', color: '#ffb3b3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {safeBrowsingMatches.map((match, idx) => {
                         const threatTypes: Record<string, string> = {
-                          'MALWARE': 'Шкідливе ПЗ (Загроза зараження вірусом)',
-                          'SOCIAL_ENGINEERING': 'Соціальна Інженерія (Фішинг, спроба вкрасти паролі чи дані)',
-                          'UNWANTED_SOFTWARE': 'Небажане ПЗ (Програми, що змінюють налаштування без вашого дозволу)',
-                          'POTENTIALLY_HARMFUL_APPLICATION': 'Потенційно Небезпечний Додаток'
+                          'MALWARE': 'Шкідливе ПЗ (загроза зараження вірусом)',
+                          'SOCIAL_ENGINEERING': 'Соціальна інженерія (фішинг, спроба викрасти паролі чи дані)',
+                          'UNWANTED_SOFTWARE': 'Небажане ПЗ (програми, що змінюють налаштування без вашого дозволу)',
+                          'POTENTIALLY_HARMFUL_APPLICATION': 'Потенційно небезпечний додаток'
                         };
                         const explanation = threatTypes[match.threatType] || match.threatType;
                         const isHard = match.threatType.includes('URLhaus') || match.threatType.includes('Safe Browsing') || match.threatType.includes('NXDOMAIN');
@@ -590,7 +648,7 @@ function ForensicDashboardContent() {
 
                 {/* Поглиблена криміналістична розвідка (SPF/DKIM/DMARC, Тайпосквотинг, RDAP Вік) */}
                 {(state.context.emailAuth?.hasHeaders || (state.context.brandResults && state.context.brandResults.length > 0) || (state.context.rdapResults && Object.keys(state.context.rdapResults).length > 0)) && (
-                  <Panel title="Криміналістична Розвідка: Автентифікація & Інфраструктура" style={{ overflow: 'visible' }}>
+                  <Panel title="Криміналістична розвідка: автентифікація та інфраструктура" style={{ overflow: 'visible' }}>
                     <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px', overflow: 'visible' }}>
                       
                       {/* 1. Поштова автентифікація */}
@@ -793,7 +851,7 @@ function ForensicDashboardContent() {
                                   )}
                                   <div>
                                     <span style={{ color: isBad ? '#f39c12' : 'var(--fx-green)', fontWeight: 500 }}>
-                                      {dom} {r.ageDays !== null ? `(Вік: ${r.ageDays} днів)` : ''}
+                                      {dom} {r.ageDays !== null ? `(вік: ${r.ageDays} днів)` : ''}
                                     </span>
                                     <span style={{ display: 'block', color: 'var(--fx-muted)', fontSize: '11px', marginTop: '1px' }}>
                                       {r.details}
@@ -810,7 +868,19 @@ function ForensicDashboardContent() {
                   </Panel>
                 )}
 
-                <Panel title="Знайдені тригери">
+                <Panel 
+                  title="Знайдені тригери"
+                  headerRight={
+                    <button
+                      onClick={exportForensicReport}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300"
+                      title="Завантажити структурований JSON звіт криміналістичного аналізу"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Експорт звіту (JSON)</span>
+                    </button>
+                  }
+                >
                   <div
                     style={{
                       padding: '18px',
@@ -819,37 +889,46 @@ function ForensicDashboardContent() {
                       flexWrap: 'wrap',
                     }}
                   >
-                    {vectors.map((vec) => (
-                      <motion.span
-                        key={vec.id}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setActiveNode(activeNode?.id === vec.id ? null : vec)}
-                        style={{
-                          border: `1px solid ${vec.color}${activeNode?.id === vec.id ? 'ff' : '40'}`,
-                          background: `${vec.color}${activeNode?.id === vec.id ? '30' : '15'}`,
-                          color: vec.color,
-                          padding: '6px 10px',
-                          fontSize: '10px',
-                          fontFamily: 'var(--fx-mono)',
-                          letterSpacing: '0.05em',
-                          cursor: 'pointer',
-                          transition: 'background 0.2s, border 0.2s',
-                        }}
-                      >
-                        {vec.trigger ? (vec.trigger.charAt(0).toUpperCase() + vec.trigger.slice(1)) : ''} ({(vec.score * 100).toFixed(1)}%)
-                      </motion.span>
-                    ))}
+                    {vectors.map((vec) => {
+                      const isActive = activeNode?.id === vec.id;
+                      const isHovered = hoveredVectorId === vec.id;
+
+                      return (
+                        <motion.span
+                          key={vec.id}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onMouseEnter={() => setHoveredVectorId(vec.id)}
+                          onMouseLeave={() => setHoveredVectorId(null)}
+                          onClick={() => setActiveNode(isActive ? null : vec)}
+                          style={{
+                            border: `1px solid ${vec.color}${isActive || isHovered ? 'ff' : '40'}`,
+                            background: `${vec.color}${isActive || isHovered ? '35' : '15'}`,
+                            color: vec.color,
+                            padding: '6px 10px',
+                            fontSize: '10px',
+                            fontFamily: 'var(--fx-mono)',
+                            letterSpacing: '0.05em',
+                            cursor: 'pointer',
+                            borderRadius: '4px',
+                            boxShadow: isActive || isHovered ? `0 0 10px ${vec.color}60` : 'none',
+                            transition: 'all 0.15s ease-in-out',
+                          }}
+                        >
+                          {vec.trigger ? (vec.trigger.charAt(0).toUpperCase() + vec.trigger.slice(1)) : ''} ({(vec.score * 100).toFixed(1)}%)
+                        </motion.span>
+                      );
+                    })}
                     {vectors.length === 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', width: '100%', padding: '4px' }}>
                         <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Shield className="w-4 h-4" /> <span>Евристичний аналіз: Маніпулятивних тригерів чи шкідливого контенту не знайдено</span>
+                          <Shield className="w-4 h-4" /> <span>Евристичний аналіз: маніпулятивних тригерів чи шкідливого контенту не знайдено</span>
                         </div>
                         <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Shield className="w-4 h-4" /> <span>Обфускація: Текст кристально чистий (без прихованих символів чи підміни літер)</span>
+                          <Shield className="w-4 h-4" /> <span>Обфускація: текст кристально чистий (без прихованих символів чи підміни літер)</span>
                         </div>
                         <div style={{ color: 'var(--fx-muted)', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-                          <span style={{ color: 'var(--fx-cyan)' }}>ML-Аналітика:</span> Базовий рівень ризику ({threatLevel}%) 
+                          <span style={{ color: 'var(--fx-cyan)' }}>ML-аналітика:</span> Базовий рівень ризику ({threatLevel}%) 
                           {safeBrowsingMatches.length > 0 
                             ? ' встановлено на 100%, оскільки в тексті виявлено шкідливе посилання, занесене до глобальної бази загроз Google Safe Browsing!' 
                             : (threatLevel === 0 
@@ -860,37 +939,157 @@ function ForensicDashboardContent() {
                       </div>
                     )}
                     
-                    {/* Завжди показуємо перевірені URL та IP */}
+                    {/* URL X-Ray Inspector: Інтерактивний інспектор посилань */}
                     {state.context.extractedIndicators?.urls?.length ? (
-                      <div style={{ width: '100%', marginTop: vectors.length > 0 ? '16px' : '8px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px', borderTop: vectors.length > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingTop: vectors.length > 0 ? '16px' : '0' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--fx-muted)' }}>
-                          <Shield className="w-4 h-4" /> <span>Аналіз URL-адрес (DNS & Safe Browsing & ML):</span>
+                      <div style={{ width: '100%', marginTop: vectors.length > 0 ? '16px' : '8px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: vectors.length > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingTop: vectors.length > 0 ? '16px' : '0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--fx-muted)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Globe className="w-4 h-4 text-cyan-400" /> 
+                            <span>Аналіз URL-адрес (DNS, Safe Browsing та ML) — Натисніть на посилання для рентгену:</span>
+                          </div>
+                          <span style={{ fontSize: '10px', fontFamily: 'var(--fx-mono)', color: 'var(--fx-cyan)' }}>
+                            Знайдено: {state.context.extractedIndicators.urls.length}
+                          </span>
                         </div>
-                        <ul style={{ margin: 0, paddingLeft: '24px', listStyleType: 'none', color: 'var(--fx-muted)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {state.context.extractedIndicators.urls.map((url, idx) => {
                              const badMatch = safeBrowsingMatches.find(m => m.threat?.url === url || m.threat?.url?.includes(url) || url.includes(m.threat?.url));
+                             const isExpanded = expandedUrl === url;
+
+                             // Парсинг частин URL для рентгену
+                             let urlObj: URL | null = null;
+                             try {
+                               urlObj = new URL(url);
+                             } catch (e) {
+                               // fallback якщо URL відносний
+                             }
+
+                             const host = urlObj ? urlObj.hostname : url.replace(/^https?:\/\//i, '').split('/')[0];
+                             const rdapInfo = state.context.rdapResults ? state.context.rdapResults[host] : null;
+                             const brandMatch = state.context.brandResults?.find((b: any) => b.candidateDomain === host);
+
                              return (
-                                <li key={idx} style={{ color: badMatch ? '#ff5d5f' : 'var(--fx-green)', display: 'flex', alignItems: 'flex-start', gap: '8px', wordBreak: 'break-all' }}>
-                                  <span style={{ marginTop: '2px' }}>
-                                    {badMatch ? (
-                                      <XCircle className="w-4 h-4 text-red-500 shrink-0" />
-                                    ) : (
-                                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                                    )}
-                                  </span>
-                                  <div>
-                                    <span>{url}</span>
-                                    {badMatch && (
-                                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#ff8a8a', fontStyle: 'italic', marginTop: '2px' }}>
-                                        <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                                        <span>{badMatch.threatType}: {badMatch.details || 'Підозрілий або неіснуючий ресурс'}</span>
+                                <div 
+                                  key={idx} 
+                                  style={{ 
+                                    background: isExpanded ? 'rgba(108, 229, 220, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                                    border: isExpanded 
+                                      ? '1px solid var(--fx-cyan)' 
+                                      : badMatch 
+                                        ? '1px solid rgba(239, 68, 68, 0.3)' 
+                                        : '1px solid rgba(255, 255, 255, 0.06)',
+                                    borderRadius: '6px',
+                                    padding: '8px 12px',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  <div 
+                                    onClick={() => setExpandedUrl(isExpanded ? null : url)}
+                                    style={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      justifyContent: 'space-between',
+                                      cursor: 'pointer',
+                                      gap: '10px'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                      {badMatch ? (
+                                        <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                      ) : (
+                                        <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                                      )}
+                                      <span style={{ 
+                                        color: badMatch ? '#f87171' : 'var(--fx-text)', 
+                                        fontFamily: 'var(--fx-mono)',
+                                        fontSize: '12px',
+                                        wordBreak: 'break-all'
+                                      }}>
+                                        {url}
                                       </span>
-                                    )}
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                      {badMatch ? (
+                                        <span className="text-[10px] px-2 py-0.5 rounded bg-red-950/60 border border-red-500/40 text-red-400 font-mono">
+                                          Загроза
+                                        </span>
+                                      ) : (
+                                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-mono">
+                                          Чистий
+                                        </span>
+                                      )}
+                                      {isExpanded ? (
+                                        <ChevronDown className="w-3.5 h-3.5 text-cyan-400" />
+                                      ) : (
+                                        <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+                                      )}
+                                    </div>
                                   </div>
-                                </li>
+
+                                  {/* URL X-Ray Details Panel */}
+                                  <AnimatePresence>
+                                    {isExpanded && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        style={{ overflow: 'hidden' }}
+                                      >
+                                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '11px', fontFamily: 'var(--fx-mono)' }}>
+                                          <div>
+                                            <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Хост / протокол:</span>
+                                            <span style={{ color: 'var(--fx-cyan)' }}>{urlObj ? `${urlObj.protocol}//${urlObj.hostname}` : host}</span>
+                                          </div>
+
+                                          {urlObj && urlObj.pathname && urlObj.pathname !== '/' && (
+                                            <div>
+                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Шлях (Path):</span>
+                                              <span style={{ color: '#ffffff' }}>{urlObj.pathname}</span>
+                                            </div>
+                                          )}
+
+                                          {urlObj && urlObj.search && (
+                                            <div>
+                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Параметри запиту:</span>
+                                              <span style={{ color: '#f59e0b', wordBreak: 'break-all' }}>{urlObj.search}</span>
+                                            </div>
+                                          )}
+
+                                          {rdapInfo && (
+                                            <div>
+                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Вік домену (ICANN RDAP):</span>
+                                              <span style={{ color: (rdapInfo.isCritical0Day || rdapInfo.isNewlyRegistered) ? '#f59e0b' : 'var(--fx-green)' }}>
+                                                {rdapInfo.ageDays !== null ? `${rdapInfo.ageDays} днів` : 'Невідомо'} ({rdapInfo.registrar || 'Реєстратор не вказаний'})
+                                              </span>
+                                            </div>
+                                          )}
+
+                                          {brandMatch && (
+                                            <div>
+                                              <span style={{ color: 'var(--fx-muted)', display: 'block', marginBottom: '2px' }}>Захист брендів:</span>
+                                              <span style={{ color: brandMatch.isImpersonation ? 'var(--fx-red)' : 'var(--fx-green)' }}>
+                                                {brandMatch.isImpersonation ? `Підміна: ${brandMatch.targetBrand?.name}` : 'Легітимний ресурс'}
+                                              </span>
+                                            </div>
+                                          )}
+
+                                          {badMatch && (
+                                            <div style={{ gridColumn: '1 / -1' }}>
+                                              <span style={{ color: 'var(--fx-red)', display: 'block', marginBottom: '2px' }}>Запис у базі загроз:</span>
+                                              <span style={{ color: '#f87171' }}>{badMatch.threatType}: {badMatch.details || 'Шкідливий сайт'}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
                              );
                           })}
-                        </ul>
+                        </div>
                       </div>
                     ) : null}
 

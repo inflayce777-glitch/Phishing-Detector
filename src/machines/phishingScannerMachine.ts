@@ -137,7 +137,7 @@ const runInferenceActor = fromPromise(
       if (hasHeuristics) {
         heuristics.vectors.push({
           id: 'ml-1',
-          trigger: mlVerdict.spam_match ? 'ML: Підтверджений Спам' : 'Глобальна ML-модель',
+          trigger: mlVerdict.spam_match ? 'ML: підтверджений спам' : 'Глобальна ML-модель',
           score: mlVerdict.phishing_probability,
           explanation: mlVerdict.spam_match 
             ? `Знаходження в базі. Цей текст на ${(mlVerdict.best_spam_score * 100).toFixed(1)}% схожий на відомий спам з датасету (редагування оцінки на фішинг).`
@@ -152,7 +152,7 @@ const runInferenceActor = fromPromise(
         const cappedScore = Math.min(mlVerdict.phishing_probability, 0.45);
         heuristics.vectors.push({
           id: 'ml-1',
-          trigger: mlVerdict.spam_match ? 'ML: Підтверджений Спам' : 'Аномальний текст (Спам)',
+          trigger: mlVerdict.spam_match ? 'ML: підтверджений спам' : 'Аномальний текст (спам)',
           score: cappedScore,
           explanation: mlVerdict.spam_match
             ? `Цей текст на ${(mlVerdict.best_spam_score * 100).toFixed(1)}% ідентичний до відомого спаму з наших датасетів. Повідомлення не несе прямої фішингової загрози, але є сміттєвим.`
@@ -181,7 +181,7 @@ const runInferenceActor = fromPromise(
         const sentenceMaxScore = Math.min(Math.max(...sentenceVerdicts.map((v: any) => v.phishing_probability)), 0.85);
         heuristics.vectors.push({
           id: 'ml-sentence',
-          trigger: 'ML-Аналіз Контексту',
+          trigger: 'ML-аналіз контексту',
           score: Math.max(sentenceMaxScore, 0.6),
           explanation: 'Штучний інтелект виявив маніпулятивний або фішинговий патерн безпосередньо у виділених реченнях.',
           color: '#ff4d4d',
@@ -197,7 +197,7 @@ const runInferenceActor = fromPromise(
     if (mlVerdict && mlVerdict.spam_match) {
       heuristics.vectors.push({
         id: 'ml-spam',
-        trigger: 'ML: Збіг зі Спам-Базою',
+        trigger: 'ML: збіг зі спам-базою',
         score: Math.max(mlVerdict.best_spam_score, 0.6),
         explanation: `Семантичний збіг на ${(mlVerdict.best_spam_score * 100).toFixed(1)}% зі зразком із бази масових розсилок («${mlVerdict.best_spam_text.slice(0, 60)}...»).`,
         color: '#f39c12'
@@ -213,7 +213,7 @@ const runInferenceActor = fromPromise(
       if (emailAuth.isSpoofed) {
         heuristics.vectors.push({
           id: 'email-spoofing',
-          trigger: 'Спуфінг Відправника (SPF/DKIM Fail)',
+          trigger: 'Спуфінг відправника (SPF/DKIM fail)',
           score: 0.95,
           explanation: emailAuth.spoofingReason || 'Виявлено фальсифікацію адреси відправника або провал DMARC Alignment.',
           color: '#ff003c'
@@ -245,7 +245,7 @@ const runInferenceActor = fromPromise(
       if (bRes.isImpersonation) {
         heuristics.vectors.push({
           id: `typosquatting-${bRes.candidateDomain}`,
-          trigger: `Тайпосквотинг: ${bRes.targetBrand?.name || 'Бренд'}`,
+          trigger: `Тайпосквотинг: ${bRes.targetBrand?.name || 'бренд'}`,
           score: Math.max(bRes.similarityScore, 0.90),
           explanation: bRes.explanation,
           color: '#ff003c'
@@ -263,7 +263,7 @@ const runInferenceActor = fromPromise(
           if (rdapData.isCritical0Day) {
             heuristics.vectors.push({
               id: `rdap-0day-${bRes.candidateDomain}`,
-              trigger: 'Свіжий Домен (0-Day NRD)',
+              trigger: 'Свіжий домен (0-day NRD)',
               score: 0.85,
               explanation: rdapData.details,
               color: '#ff003c'
@@ -272,7 +272,7 @@ const runInferenceActor = fromPromise(
           } else if (rdapData.isNewlyRegistered) {
             heuristics.vectors.push({
               id: `rdap-nrd-${bRes.candidateDomain}`,
-              trigger: 'Нещодавно Створений Домен (<30 днів)',
+              trigger: 'Нещодавно створений домен (<30 днів)',
               score: 0.60,
               explanation: rdapData.details,
               color: '#f39c12'

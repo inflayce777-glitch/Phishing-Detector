@@ -58,7 +58,7 @@ function ResetTotpContent() {
       {status === "success" && (
         <div>
           <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-emerald-400 mb-2">2FA Успішно Скинуто!</h2>
+          <h2 className="text-xl font-bold text-emerald-400 mb-2">2FA успішно скинуто!</h2>
           <p className="text-gray-400 mb-6">Тепер ви можете увійти без коду та налаштувати 2FA заново у профілі.</p>
           <p className="text-sm text-gray-500">Перенаправлення в панель керування...</p>
         </div>
@@ -67,7 +67,7 @@ function ResetTotpContent() {
       {status === "error" && (
         <div>
           <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-red-400 mb-2">Помилка Скидання</h2>
+          <h2 className="text-xl font-bold text-red-400 mb-2">Помилка скидання</h2>
           <p className="text-gray-400 mb-6">{errorMessage}</p>
           <button 
             onClick={() => router.push("/auth/verify")}

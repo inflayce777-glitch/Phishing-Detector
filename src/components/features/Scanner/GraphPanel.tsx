@@ -37,7 +37,7 @@ export const GraphPanel = ({ vectors, activeNode, setActiveNode, threatLevel }: 
                 [ {activeNode.trigger ? (activeNode.trigger.charAt(0).toUpperCase() + activeNode.trigger.slice(1)) : ''} ]
               </div>
               <div style={{ color: activeNode.color, fontFamily: 'var(--fx-mono)', fontSize: '11px' }}>
-                {(activeNode.score * 100).toFixed(1)}% Ризик
+                {(activeNode.score * 100).toFixed(1)}% ризик
               </div>
             </div>
             <div style={{ color: 'var(--fx-text)', fontSize: '13px', lineHeight: '1.5' }}>

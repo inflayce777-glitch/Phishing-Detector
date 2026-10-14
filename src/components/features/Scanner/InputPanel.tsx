@@ -27,6 +27,8 @@ interface InputPanelProps {
   safeBrowsingMatches?: any[];
   activeNode?: any | null;
   setActiveNode?: (node: any | null) => void;
+  hoveredVectorId?: string | null;
+  setHoveredVectorId?: (id: string | null) => void;
   isTrusted?: boolean;
 }
 
@@ -50,6 +52,8 @@ export const InputPanel = ({
   safeBrowsingMatches = [],
   activeNode,
   setActiveNode,
+  hoveredVectorId,
+  setHoveredVectorId,
   isTrusted
 }: InputPanelProps) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -116,11 +120,13 @@ export const InputPanel = ({
                 extractedIps={extractedIps}
                 safeBrowsingMatches={safeBrowsingMatches}
                 selectedVectorId={activeNode?.id}
+                hoveredVectorId={hoveredVectorId}
                 onVectorSelect={(id) => {
                   if (setActiveNode) {
                      setActiveNode(vectors.find(v => v.id === id) || null);
                   }
                 }}
+                onVectorHover={setHoveredVectorId}
               />
             </div>
 

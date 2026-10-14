@@ -103,7 +103,7 @@ export const PROTECTED_BRANDS: ProtectedBrand[] = [
   },
   {
     id: 'zsu',
-    name: 'Збройні Сили України / Оборона',
+    name: 'Збройні сили України / Оборона',
     category: 'Оборона / ЗСУ',
     primaryDomains: ['mil.gov.ua', 'mod.gov.ua', 'zsu.gov.ua', '33polk.army'],
     keywords: ['milgov', 'zsu', 'landforces']
@@ -112,7 +112,7 @@ export const PROTECTED_BRANDS: ProtectedBrand[] = [
   // 3. Logistics & E-Commerce
   {
     id: 'novaposhta',
-    name: 'Нова Пошта (Nova Post)',
+    name: 'Нова пошта (Nova Post)',
     category: 'Логістика / Доставка',
     primaryDomains: ['novaposhta.ua', 'novapost.com', 'npost.page'],
     keywords: ['novaposhta', 'novapost']
@@ -315,7 +315,7 @@ export function detectBrandImpersonation(urlOrDomain: string): BrandImpersonatio
             targetBrand: brand,
             technique: 'IDN Homoglyph',
             similarityScore: 0.98,
-            explanation: `Критична загроза: Виявлено використання IDN Punycode для маскування під бренд ${brand.name}.`,
+            explanation: `Критична загроза: виявлено використання IDN Punycode для маскування під бренд ${brand.name}.`,
             candidateDomain: hostname,
             legitimateDomain: brand.primaryDomains[0]
           };
@@ -337,7 +337,7 @@ export function detectBrandImpersonation(urlOrDomain: string): BrandImpersonatio
             targetBrand: brand,
             technique: 'Combosquatting',
             similarityScore: 0.95,
-            explanation: `Виявлено комбосквотинг: Домен ${hostname} експлуатує ім'я бренду ${brand.name} у поєднанні зі службовими словами на неофіційному домені.`,
+            explanation: `Виявлено комбосквотинг: домен ${hostname} експлуатує ім'я бренду ${brand.name} у поєднанні зі службовими словами на неофіційному домені.`,
             candidateDomain: hostname,
             legitimateDomain: brand.primaryDomains[0]
           };
@@ -370,7 +370,7 @@ export function detectBrandImpersonation(urlOrDomain: string): BrandImpersonatio
             targetBrand: brand,
             technique: 'Typosquatting',
             similarityScore: Math.round(sim * 100) / 100,
-            explanation: `Виявлено тайпосквотинг: Домен ${hostname} відрізняється лише на ${dist} літеру(и) від офіційного домену ${legitDomain} бренду ${brand.name}.`,
+            explanation: `Виявлено тайпосквотинг: домен ${hostname} відрізняється лише на ${dist} літеру(и) від офіційного домену ${legitDomain} бренду ${brand.name}.`,
             candidateDomain: hostname,
             legitimateDomain: legitDomain
           };
