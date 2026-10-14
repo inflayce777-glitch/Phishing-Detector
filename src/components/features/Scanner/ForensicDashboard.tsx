@@ -520,6 +520,7 @@ function ForensicDashboardContent() {
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
+                style={{ overflow: 'visible' }}
               >
                 <VerdictPanel threatLevel={threatLevel} isSpam={state.context.isSpam} />
 
@@ -588,18 +589,18 @@ function ForensicDashboardContent() {
 
                 {/* Поглиблена криміналістична розвідка (SPF/DKIM/DMARC, Тайпосквотинг, RDAP Вік) */}
                 {(state.context.emailAuth?.hasHeaders || (state.context.brandResults && state.context.brandResults.length > 0) || (state.context.rdapResults && Object.keys(state.context.rdapResults).length > 0)) && (
-                  <Panel title="Криміналістична Розвідка: Автентифікація & Інфраструктура">
-                    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px' }}>
+                  <Panel title="Криміналістична Розвідка: Автентифікація & Інфраструктура" style={{ overflow: 'visible' }}>
+                    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px', overflow: 'visible' }}>
                       
                       {/* 1. Поштова автентифікація */}
                       {state.context.emailAuth?.hasHeaders && (
-                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '4px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '4px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', overflow: 'visible' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--fx-cyan)', fontWeight: 600 }}>
                               <Fingerprint className="w-4 h-4 text-cyan-400" />
                               <span>Автентичність відправника (RFC 7208 / 6376 / 7489)</span>
                             </div>
-                            <div className="relative group cursor-help inline-block">
+                            <div className="relative group cursor-help inline-block hover:z-50">
                               <span style={{ 
                                 fontSize: '11px', 
                                 padding: '3px 10px', 
@@ -624,20 +625,20 @@ function ForensicDashboardContent() {
                                   </>
                                 )}
                               </span>
-                              <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden group-hover:block z-50 w-72 p-2.5 bg-gray-950 border border-gray-700 rounded-lg shadow-2xl text-xs text-gray-300 leading-relaxed">
+                              <div className="pointer-events-none absolute top-full right-0 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-2.5 bg-gray-950 border border-gray-700 rounded-lg shadow-2xl text-xs text-gray-300 leading-relaxed">
                                 {state.context.emailAuth.isSpoofed ? (
                                   <span className="text-red-400 font-medium">Увага! Сервер відправника або цифровий підпис не відповідає заявленому домену. Виявлено ознаки підміни адреси (спуфінгу).</span>
                                 ) : (
                                   <span className="text-emerald-400 font-medium">Лист успішно пройшов комплексну перевірку автентичності. Всі цифрові підписи валідні, ознак підміни (спуфінгу) не виявлено.</span>
                                 )}
-                                <div className="absolute top-full right-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                                <div className="absolute -top-1 right-6 w-2 h-2 bg-gray-950 border-t border-l border-gray-700 transform rotate-45" />
                               </div>
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px', overflow: 'visible' }}>
                             {/* SPF Badge with rich tooltip */}
-                            <div className="relative group cursor-help inline-block">
+                            <div className="relative group cursor-help inline-block hover:z-50">
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.spf.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -649,7 +650,7 @@ function ForensicDashboardContent() {
                                 <span>SPF: {getSpfLabel(state.context.emailAuth.spf.status)}</span>
                                 <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
                               </span>
-                              <div className="pointer-events-none absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
+                              <div className="pointer-events-none absolute top-full left-0 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
                                 <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
                                   <Fingerprint className="w-3.5 h-3.5" />
                                   SPF (Sender Policy Framework)
@@ -661,12 +662,12 @@ function ForensicDashboardContent() {
                                   <span>Результат: <strong className={state.context.emailAuth.spf.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getSpfLabel(state.context.emailAuth.spf.status)}</strong></span>
                                   <span>RFC 7208</span>
                                 </div>
-                                <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                                <div className="absolute -top-1 left-6 w-2 h-2 bg-gray-950 border-t border-l border-cyan-500/50 transform rotate-45" />
                               </div>
                             </div>
 
                             {/* DKIM Badge with rich tooltip */}
-                            <div className="relative group cursor-help inline-block">
+                            <div className="relative group cursor-help inline-block hover:z-50">
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.dkim.status === 'pass' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -678,7 +679,7 @@ function ForensicDashboardContent() {
                                 <span>DKIM: {getDkimLabel(state.context.emailAuth.dkim.status)}</span>
                                 <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
                               </span>
-                              <div className="pointer-events-none absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
+                              <div className="pointer-events-none absolute top-full left-0 sm:left-1/2 sm:-translate-x-1/4 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
                                 <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
                                   <Fingerprint className="w-3.5 h-3.5" />
                                   DKIM (DomainKeys Identified Mail)
@@ -690,12 +691,12 @@ function ForensicDashboardContent() {
                                   <span>Результат: <strong className={state.context.emailAuth.dkim.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}>{getDkimLabel(state.context.emailAuth.dkim.status)}</strong></span>
                                   <span>RFC 6376</span>
                                 </div>
-                                <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                                <div className="absolute -top-1 left-6 sm:left-1/4 w-2 h-2 bg-gray-950 border-t border-l border-cyan-500/50 transform rotate-45" />
                               </div>
                             </div>
 
                             {/* DMARC Badge with rich tooltip */}
-                            <div className="relative group cursor-help inline-block">
+                            <div className="relative group cursor-help inline-block hover:z-50">
                               <span style={{ 
                                 display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '4px',
                                 background: state.context.emailAuth.dmarc.alignment === 'aligned' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -707,7 +708,7 @@ function ForensicDashboardContent() {
                                 <span>DMARC: {getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</span>
                                 <Info className="w-3 h-3 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" />
                               </span>
-                              <div className="pointer-events-none absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
+                              <div className="pointer-events-none absolute top-full right-0 mt-2 hidden group-hover:block z-50 w-72 max-w-[calc(100vw-3rem)] p-3 bg-gray-950 border border-cyan-500/50 rounded-lg shadow-2xl text-xs text-gray-200">
                                 <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
                                   <Fingerprint className="w-3.5 h-3.5" />
                                   DMARC (Domain-based Authentication)
@@ -719,7 +720,7 @@ function ForensicDashboardContent() {
                                   <span>Результат: <strong className={state.context.emailAuth.dmarc.alignment === 'aligned' ? 'text-emerald-400' : 'text-red-400'}>{getDmarcLabel(state.context.emailAuth.dmarc.alignment)}</strong></span>
                                   <span>RFC 7489</span>
                                 </div>
-                                <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-gray-950" />
+                                <div className="absolute -top-1 right-6 w-2 h-2 bg-gray-950 border-t border-l border-cyan-500/50 transform rotate-45" />
                               </div>
                             </div>
                           </div>
