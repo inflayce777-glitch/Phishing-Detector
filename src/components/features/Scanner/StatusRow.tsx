@@ -46,10 +46,10 @@ export const StatusRow = ({
 
   return (
     <motion.div 
-      className="flex justify-between items-center" 
+      className="flex justify-between items-center flex-wrap gap-2.5 pb-1" 
       variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 80, damping: 15 } } }}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 flex-wrap">
         <span style={{ color: 'var(--fx-cyan)', fontFamily: 'var(--fx-mono)', fontSize: '12px', letterSpacing: '0.05em', fontWeight: 'bold' }}>
           Статус: {statusText}
         </span>
@@ -92,8 +92,8 @@ export const StatusRow = ({
           onClick={() => setShowUserDropdown(!showUserDropdown)}
           className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 px-3 py-1 bg-cyan-950/20 transition-all rounded-sm"
         >
-          <span>{sessionEmail || "Акаунт"}</span>
-          <ChevronDown className="w-3 h-3" />
+          <span className="max-w-[160px] truncate">{sessionEmail || "Акаунт"}</span>
+          <ChevronDown className="w-3 h-3 shrink-0" />
         </button>
         
         {showUserDropdown && (

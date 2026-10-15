@@ -249,6 +249,12 @@ function ForensicDashboardContent() {
       threatLevel = Math.max(threatLevel, 80);
   }
 
+  const hasForensicIntel = Boolean(
+    state.context.emailAuth?.hasHeaders || 
+    (state.context.brandResults && state.context.brandResults.length > 0) || 
+    (state.context.rdapResults && Object.keys(state.context.rdapResults).length > 0)
+  );
+
   // Save analysis result to Inbox Email if we are scanning an email
   useEffect(() => {
     if (state.value === 'complete_with_xai' && emailId) {
@@ -483,12 +489,13 @@ function ForensicDashboardContent() {
 
             {isComplete && (
               <motion.section 
-                className="fx-bottom"
+                className="mt-4 flex flex-col gap-4 w-full min-w-0"
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
                 style={{ overflow: 'visible' }}
               >
+                {/* 1. Головний підсумковий висновок системи (на всю ширину екрана) */}
                 <VerdictPanel 
                   threatLevel={threatLevel} 
                   isSpam={state.context.isSpam}
@@ -505,20 +512,19 @@ function ForensicDashboardContent() {
                   onExportReport={exportForensicReport}
                 />
 
+                {/* 2. Критичні системні сповіщення (на всю ширину, якщо активні) */}
                 {state.context.isTrusted && safeBrowsingMatches.length === 0 && (
-                  <Panel title="Надійний відправник (BIMI / DMARC)" className="border-green-500">
-                    <div style={{ padding: '18px', color: '#b3ffb3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                         <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                         <span>Домен відправника знаходиться в системному білому списку і лист не містить ознак обфускації. Системне сповіщення верифіковано.</span>
-                      </div>
+                  <Panel title="Надійний відправник (BIMI / DMARC)" className="border-emerald-500/50">
+                    <div style={{ padding: '16px 18px', color: '#b3ffb3', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Домен відправника знаходиться в системному білому списку і лист не містить ознак обфускації. Системне сповіщення верифіковано.</span>
                     </div>
                   </Panel>
                 )}
 
                 {state.context.obfuscation && state.context.obfuscation.flags.length > 0 && (
                   <Panel title="Виявлено обфускацію (приховування)" style={{ border: '1px solid var(--fx-red)' }}>
-                    <div style={{ padding: '18px', color: '#ffb3b3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ padding: '16px 18px', color: '#ffb3b3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {state.context.obfuscation.flags.map((flag, idx) => (
                         <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
@@ -534,7 +540,7 @@ function ForensicDashboardContent() {
                     title={hasHardBlacklist ? "Глобальні чорні списки загроз (критично)" : "Репутаційний аналіз посилань та інфраструктури"} 
                     style={{ border: hasHardBlacklist ? '1px solid var(--fx-red)' : '1px solid var(--fx-amber)' }}
                   >
-                    <div style={{ padding: '18px', color: '#ffb3b3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ padding: '16px 18px', color: '#ffb3b3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {safeBrowsingMatches.map((match, idx) => {
                         const threatTypes: Record<string, string> = {
                           'MALWARE': 'Шкідливе ПЗ (загроза зараження вірусом)',
@@ -568,97 +574,101 @@ function ForensicDashboardContent() {
                   </Panel>
                 )}
 
-                {/* Поглиблена криміналістична розвідка (SPF/DKIM/DMARC, Тайпосквотинг, RDAP Вік) */}
-                {(state.context.emailAuth?.hasHeaders || (state.context.brandResults && state.context.brandResults.length > 0) || (state.context.rdapResults && Object.keys(state.context.rdapResults).length > 0)) && (
-                  <Panel title="Криміналістична розвідка: автентифікація та інфраструктура" style={{ overflow: 'visible' }}>
-                    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px', overflow: 'visible' }}>
-                      <EmailAuthCard emailAuth={state.context.emailAuth} />
-                      <DomainIntelCard brandResults={state.context.brandResults} rdapResults={state.context.rdapResults} />
+                {/* 3. Поглиблена криміналістична сітка (2 колонки на десктопі, 1 колонка на мобільних) */}
+                <div className={`grid grid-cols-1 ${hasForensicIntel ? 'lg:grid-cols-2' : ''} gap-4 items-start min-w-0`}>
+                  {/* Ліва колонка: Автентифікація та інфраструктура */}
+                  {hasForensicIntel && (
+                    <Panel title="Криміналістична розвідка: автентифікація та інфраструктура" className="min-w-0">
+                      <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px' }}>
+                        <EmailAuthCard emailAuth={state.context.emailAuth} />
+                        <DomainIntelCard brandResults={state.context.brandResults} rdapResults={state.context.rdapResults} />
+                      </div>
+                    </Panel>
+                  )}
+
+                  {/* Права колонка: Знайдені тригери та URL-інспектор */}
+                  <Panel 
+                    title="Знайдені тригери"
+                    className="min-w-0"
+                    headerRight={
+                      <button
+                        onClick={exportForensicReport}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300"
+                        title="Завантажити структурований JSON звіт криміналістичного аналізу"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Експорт звіту (JSON)</span>
+                      </button>
+                    }
+                  >
+                    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
+                      {/* Список тригерів */}
+                      {vectors.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {vectors.map((vec) => {
+                            const isActive = activeNode?.id === vec.id;
+                            const isHovered = hoveredVectorId === vec.id;
+
+                            return (
+                              <motion.span
+                                key={vec.id}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onMouseEnter={() => setHoveredVectorId(vec.id)}
+                                onMouseLeave={() => setHoveredVectorId(null)}
+                                onClick={() => setActiveNode(isActive ? null : vec)}
+                                style={{
+                                  border: `1px solid ${vec.color}${isActive || isHovered ? 'ff' : '40'}`,
+                                  background: `${vec.color}${isActive || isHovered ? '35' : '15'}`,
+                                  color: vec.color,
+                                  padding: '6px 10px',
+                                  fontSize: '10px',
+                                  fontFamily: 'var(--fx-mono)',
+                                  letterSpacing: '0.05em',
+                                  cursor: 'pointer',
+                                  borderRadius: '4px',
+                                  boxShadow: isActive || isHovered ? `0 0 10px ${vec.color}60` : 'none',
+                                  transition: 'all 0.15s ease-in-out',
+                                }}
+                              >
+                                {vec.trigger ? (vec.trigger.charAt(0).toUpperCase() + vec.trigger.slice(1)) : ''} ({(vec.score * 100).toFixed(1)}%)
+                              </motion.span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {vectors.length === 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', width: '100%', padding: '4px' }}>
+                          <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Shield className="w-4 h-4 shrink-0" /> <span>Евристичний аналіз: маніпулятивних тригерів чи шкідливого контенту не знайдено</span>
+                          </div>
+                          <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Shield className="w-4 h-4 shrink-0" /> <span>Обфускація: текст кристально чистий (без прихованих символів чи підміни літер)</span>
+                          </div>
+                          <div style={{ color: 'var(--fx-muted)', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
+                            <span style={{ color: 'var(--fx-cyan)' }}>ML-аналітика:</span> Базовий рівень ризику ({threatLevel}%) 
+                            {safeBrowsingMatches.length > 0 
+                              ? ' встановлено на 100%, оскільки в тексті виявлено шкідливе посилання, занесене до глобальної бази загроз Google Safe Browsing!' 
+                              : (threatLevel === 0 
+                                  ? ' встановлено завдяки верифікації надійного відправника та відсутності загроз.' 
+                                  : ' встановлено нейромережею через відсутність перевірених заголовків відправника (анонімний текст), але оскільки жодних експлойтів чи маніпуляцій не виявлено, повідомлення безпечне для прочитання.')
+                            }
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* URL X-Ray Inspector & IP addresses */}
+                      <UrlInspector
+                        urls={state.context.extractedIndicators?.urls}
+                        ips={state.context.extractedIndicators?.ips}
+                        safeBrowsingMatches={safeBrowsingMatches}
+                        rdapResults={state.context.rdapResults}
+                        brandResults={state.context.brandResults}
+                      />
                     </div>
                   </Panel>
-                )}
-
-                <Panel 
-                  title="Знайдені тригери"
-                  headerRight={
-                    <button
-                      onClick={exportForensicReport}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300"
-                      title="Завантажити структурований JSON звіт криміналістичного аналізу"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Експорт звіту (JSON)</span>
-                    </button>
-                  }
-                >
-                  <div
-                    style={{
-                      padding: '18px',
-                      display: 'flex',
-                      gap: '8px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    {vectors.map((vec) => {
-                      const isActive = activeNode?.id === vec.id;
-                      const isHovered = hoveredVectorId === vec.id;
-
-                      return (
-                        <motion.span
-                          key={vec.id}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onMouseEnter={() => setHoveredVectorId(vec.id)}
-                          onMouseLeave={() => setHoveredVectorId(null)}
-                          onClick={() => setActiveNode(isActive ? null : vec)}
-                          style={{
-                            border: `1px solid ${vec.color}${isActive || isHovered ? 'ff' : '40'}`,
-                            background: `${vec.color}${isActive || isHovered ? '35' : '15'}`,
-                            color: vec.color,
-                            padding: '6px 10px',
-                            fontSize: '10px',
-                            fontFamily: 'var(--fx-mono)',
-                            letterSpacing: '0.05em',
-                            cursor: 'pointer',
-                            borderRadius: '4px',
-                            boxShadow: isActive || isHovered ? `0 0 10px ${vec.color}60` : 'none',
-                            transition: 'all 0.15s ease-in-out',
-                          }}
-                        >
-                          {vec.trigger ? (vec.trigger.charAt(0).toUpperCase() + vec.trigger.slice(1)) : ''} ({(vec.score * 100).toFixed(1)}%)
-                        </motion.span>
-                      );
-                    })}
-                    {vectors.length === 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', width: '100%', padding: '4px' }}>
-                        <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Shield className="w-4 h-4" /> <span>Евристичний аналіз: маніпулятивних тригерів чи шкідливого контенту не знайдено</span>
-                        </div>
-                        <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Shield className="w-4 h-4" /> <span>Обфускація: текст кристально чистий (без прихованих символів чи підміни літер)</span>
-                        </div>
-                        <div style={{ color: 'var(--fx-muted)', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-                          <span style={{ color: 'var(--fx-cyan)' }}>ML-аналітика:</span> Базовий рівень ризику ({threatLevel}%) 
-                          {safeBrowsingMatches.length > 0 
-                            ? ' встановлено на 100%, оскільки в тексті виявлено шкідливе посилання, занесене до глобальної бази загроз Google Safe Browsing!' 
-                            : (threatLevel === 0 
-                                ? ' встановлено завдяки верифікації надійного відправника та відсутності загроз.' 
-                                : ' встановлено нейромережею через відсутність перевірених заголовків відправника (анонімний текст), але оскільки жодних експлойтів чи маніпуляцій не виявлено, повідомлення безпечне для прочитання.')
-                          }
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* URL X-Ray Inspector & IP addresses */}
-                    <UrlInspector
-                      urls={state.context.extractedIndicators?.urls}
-                      ips={state.context.extractedIndicators?.ips}
-                      safeBrowsingMatches={safeBrowsingMatches}
-                      rdapResults={state.context.rdapResults}
-                      brandResults={state.context.brandResults}
-                    />
-                  </div>
-                </Panel>
+                </div>
               </motion.section>
             )}
         </Container>

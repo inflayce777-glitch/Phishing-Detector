@@ -183,61 +183,61 @@ export const VerdictPanel = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs font-mono">
                   {/* Factor 1: Email Auth */}
-                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <Fingerprint className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Автентичність</span>
+                  <div className="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex flex-col justify-between gap-1.5 min-w-0 transition-all hover:border-cyan-500/30">
+                    <div className="flex items-center gap-2 text-zinc-400">
+                      <Fingerprint className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span className="font-medium text-xs text-zinc-300 truncate">Автентичність</span>
                     </div>
-                    <div className="font-semibold" style={{ color: breakdown?.isSpoofed ? 'var(--fx-red)' : 'var(--fx-green)' }}>
-                      {breakdown?.isSpoofed ? 'Спуфінг / Fail' : breakdown?.emailAuthStatus || 'Верифіковано'}
+                    <div className="font-semibold text-sm truncate" style={{ color: breakdown?.isSpoofed ? 'var(--fx-red)' : 'var(--fx-green)' }}>
+                      {breakdown?.isSpoofed ? 'Спуфінг / fail' : breakdown?.emailAuthStatus || 'Верифіковано'}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1">
+                    <div className="text-[11px] text-zinc-500 leading-snug break-words">
                       {breakdown?.isSpoofed ? 'Провал перевірки SPF/DKIM' : 'Цифрові підписи валідні'}
                     </div>
                   </div>
 
                   {/* Factor 2: NLP Core */}
-                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                      <span>NLP Ядро</span>
+                  <div className="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex flex-col justify-between gap-1.5 min-w-0 transition-all hover:border-purple-500/30">
+                    <div className="flex items-center gap-2 text-zinc-400">
+                      <Cpu className="w-4 h-4 text-purple-400 shrink-0" />
+                      <span className="font-medium text-xs text-zinc-300 truncate">NLP ядро</span>
                     </div>
-                    <div className="font-semibold text-white">
+                    <div className="font-semibold text-sm text-white truncate">
                       {breakdown?.mlScore !== undefined ? `${(breakdown.mlScore * 100).toFixed(1)}%` : '0%'}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1">
+                    <div className="text-[11px] text-zinc-500 leading-snug break-words">
                       Семантичний скоринг тексту
                     </div>
                   </div>
 
                   {/* Factor 3: URL & Infrastructure */}
-                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Репутація URL</span>
+                  <div className="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex flex-col justify-between gap-1.5 min-w-0 transition-all hover:border-emerald-500/30">
+                    <div className="flex items-center gap-2 text-zinc-400">
+                      <Globe className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="font-medium text-xs text-zinc-300 truncate">Репутація URL</span>
                     </div>
-                    <div className="font-semibold" style={{ color: breakdown?.hasHardBlacklist ? 'var(--fx-red)' : breakdown?.hasMlUrlThreat ? '#f39c12' : 'var(--fx-green)' }}>
+                    <div className="font-semibold text-sm truncate" style={{ color: breakdown?.hasHardBlacklist ? 'var(--fx-red)' : breakdown?.hasMlUrlThreat ? '#f39c12' : 'var(--fx-green)' }}>
                       {breakdown?.hasHardBlacklist ? 'Чорний список' : breakdown?.hasMlUrlThreat ? 'ML-підозра' : 'Чисті'}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1">
+                    <div className="text-[11px] text-zinc-500 leading-snug break-words">
                       {breakdown?.hasHardBlacklist ? 'Занесено до баз загроз' : 'Перевірка DNS та Safe Browsing'}
                     </div>
                   </div>
 
                   {/* Factor 4: Heuristics & Obfuscation */}
-                  <div className="p-2.5 rounded bg-black/30 border border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Евристика</span>
+                  <div className="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex flex-col justify-between gap-1.5 min-w-0 transition-all hover:border-amber-500/30">
+                    <div className="flex items-center gap-2 text-zinc-400">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span className="font-medium text-xs text-zinc-300 truncate">Евристика</span>
                     </div>
-                    <div className="font-semibold" style={{ color: (breakdown?.obfuscationScore || 0) > 0 ? 'var(--fx-red)' : 'var(--fx-green)' }}>
+                    <div className="font-semibold text-sm truncate" style={{ color: (breakdown?.obfuscationScore || 0) > 0 ? 'var(--fx-red)' : 'var(--fx-green)' }}>
                       {(breakdown?.obfuscationScore || 0) > 0 
                         ? `Обфускація (+${Math.round((breakdown?.obfuscationScore || 0) * 100)}%)` 
                         : (breakdown?.triggersCount ? `${breakdown.triggersCount} тригерів` : 'Без тригерів')}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1">
+                    <div className="text-[11px] text-zinc-500 leading-snug break-words">
                       Аналіз прихованих символів та слів
                     </div>
                   </div>

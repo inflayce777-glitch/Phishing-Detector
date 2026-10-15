@@ -23,13 +23,13 @@ export const UrlInspector: React.FC<UrlInspectorProps> = ({
   if (!urls.length && !ips.length) return null;
 
   return (
-    <div className="w-full mt-3 pt-3 border-t border-zinc-800/80 space-y-3 font-mono text-xs">
+    <div className="w-full mt-3 pt-3 border-t border-zinc-800/80 space-y-3 font-mono text-xs min-w-0">
       {/* URLs section */}
       {urls.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           <div className="flex items-center justify-between text-zinc-400">
             <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-cyan-400" />
+              <Globe className="w-4 h-4 text-cyan-400 shrink-0" />
               <span>Аналіз URL-адрес (Safe Browsing та інфраструктура):</span>
             </div>
             <span className="text-[10px] text-cyan-400">
@@ -37,7 +37,7 @@ export const UrlInspector: React.FC<UrlInspectorProps> = ({
             </span>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             {urls.map((url, idx) => {
               const badMatch = safeBrowsingMatches.find(
                 (m) => m.threat?.url === url || m.threat?.url?.includes(url) || url.includes(m.threat?.url)
@@ -58,7 +58,7 @@ export const UrlInspector: React.FC<UrlInspectorProps> = ({
               return (
                 <div
                   key={idx}
-                  className={`rounded-lg border transition-all ${
+                  className={`rounded-lg border transition-all min-w-0 overflow-hidden ${
                     isExpanded
                       ? 'bg-cyan-950/20 border-cyan-500/50'
                       : badMatch
@@ -68,18 +68,19 @@ export const UrlInspector: React.FC<UrlInspectorProps> = ({
                 >
                   <div
                     onClick={() => setExpandedUrl(isExpanded ? null : url)}
-                    className="flex items-center justify-between gap-3 p-2.5 cursor-pointer select-none"
+                    className="flex items-center justify-between gap-3 p-2.5 cursor-pointer select-none min-w-0"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                       {badMatch ? (
                         <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
                       ) : (
                         <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                       )}
                       <span
-                        className={`truncate text-xs ${
+                        className={`truncate text-xs min-w-0 block ${
                           badMatch ? 'text-rose-400 font-semibold' : 'text-zinc-200'
                         }`}
+                        title={url}
                       >
                         {url}
                       </span>
