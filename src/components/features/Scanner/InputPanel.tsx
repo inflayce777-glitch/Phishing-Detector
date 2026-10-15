@@ -35,7 +35,9 @@ interface InputPanelProps {
 import { useState } from 'react';
 import { FormattedTextDisplay } from './FormattedTextDisplay';
 import { EmailPreviewModal } from './EmailPreviewModal';
-import { Eye } from 'lucide-react';
+import { ThreatTemplatePicker } from './ThreatTemplatePicker';
+import { ThreatTemplate } from '@/core/templates';
+import { Eye, Sparkles } from 'lucide-react';
 
 export const InputPanel = ({
   appMode, setAppMode,
@@ -57,6 +59,14 @@ export const InputPanel = ({
   isTrusted
 }: InputPanelProps) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
+
+  const handleTemplateSelect = (template: ThreatTemplate) => {
+    setAppMode(template.mode);
+    setInputValue(template.text);
+    if (template.senderEmail) setEmailInput(template.senderEmail);
+    if (template.linkUrl) setUrlInput(template.linkUrl);
+  };
 
   const isRawEmailCode = /Content-Type:|MIME-Version:/i.test(inputValue);
   const hasHtmlContent = /<html|<body|<table|<div|<a href=|multipart\/|boundary=/i.test(inputValue);
@@ -168,11 +178,29 @@ export const InputPanel = ({
         )}
         
         {!isScanning && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-            <Button variant="outline" onClick={onCameraClick} disabled={isOcrLoading || (isComplete && !isEditing)}>
-              <Camera className="w-4 h-4" />
-              {isOcrLoading ? 'Розпізнавання...' : 'Сканувати скріншот'}
-            </Button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginTop: '5px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsTemplatePickerOpen(true)}
+                disabled={isScanning}
+                title="Оберіть реалістичний тестовий шаблон атаки або легітимного листа"
+                style={{ padding: '6px 12px', fontSize: '11px' }}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Шаблони загроз</span>
+              </Button>
+
+              <Button 
+                variant="outline" 
+                onClick={onCameraClick} 
+                disabled={isOcrLoading || (isComplete && !isEditing)}
+                style={{ padding: '6px 12px', fontSize: '11px' }}
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>{isOcrLoading ? 'Розпізнавання...' : 'Скріншот'}</span>
+              </Button>
+            </div>
             
             <Button onClick={onScanClick} disabled={!inputValue.trim()}>
               {isEditing ? 'Оновити аналіз' : 'Почати аналіз'}
@@ -180,6 +208,12 @@ export const InputPanel = ({
           </div>
         )}
       </div>
+
+      <ThreatTemplatePicker
+        isOpen={isTemplatePickerOpen}
+        onClose={() => setIsTemplatePickerOpen(false)}
+        onSelectTemplate={handleTemplateSelect}
+      />
     </Panel>
   );
 };
