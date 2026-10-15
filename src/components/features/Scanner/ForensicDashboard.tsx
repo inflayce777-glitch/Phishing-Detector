@@ -5,8 +5,7 @@ import { useMachine } from '@xstate/react';
 import { phishingScannerMachine } from '@/machines/phishingScannerMachine';
 import ThreatCanvas from '@/components/3d/ThreatCanvas';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { SecurityBootLoader } from '@/components/3d/SecurityBootLoader';
 import Tesseract from 'tesseract.js';
 import { signOut, useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -31,30 +30,8 @@ import { Button } from '@/components/ui/Button';
 import { Panel } from '@/components/ui/Panel';
 import { SmartTooltip } from '@/components/ui/SmartTooltip/SmartTooltip';
 
-function BootingCore() {
-  const { scene } = useGLTF('/models/data_core.glb');
-  const ref = useRef<any>(null);
-  const clone = scene.clone();
-  
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.y += 0.05;
-      ref.current.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.1;
-    }
-  });
-  return <primitive ref={ref} object={clone} scale={[1.8, 1.8, 1.8]} />;
-}
-
 function ForensicDashboardContent() {
   const router = useRouter();
-  const [isAppLoading, setIsAppLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAppLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const [state, send] = useMachine(phishingScannerMachine);
   const [inputValue, setInputValue] = useState('');
@@ -375,70 +352,17 @@ function ForensicDashboardContent() {
 
   return (
     <>
-      <AnimatePresence>
-        {isAppLoading && (
-          <motion.div
-            key="loader"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: 'easeInOut' }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#0b1013',
-              zIndex: 9999,
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}
+      <Container className="fx-console">
+        <Header>
+          {emailId && (
+            <button 
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 px-3 py-1 bg-cyan-950/20 transition-all rounded-sm"
             >
-              <div style={{ width: '150px', height: '150px' }}>
-                <Canvas camera={{ position: [0, 0, 4] }}>
-                  <ambientLight intensity={1.5} />
-                  <directionalLight position={[5, 5, 5]} intensity={3} />
-                  <BootingCore />
-                </Canvas>
-              </div>
-              <div style={{ fontFamily: 'var(--fx-mono)', color: '#6ce5dc', letterSpacing: '0.15em', fontSize: '18px', fontWeight: 'bold' }}>
-                Семантичний аналіз загроз
-              </div>
-              <div style={{ fontFamily: 'var(--fx-mono)', color: 'var(--fx-muted)', letterSpacing: '0.1em', fontSize: '12px' }}>
-                Ініціалізація системи...
-              </div>
-              <motion.div 
-                style={{ width: '250px', height: '2px', background: 'rgba(108, 229, 220, 0.2)', overflow: 'hidden', marginTop: '10px' }}
-              >
-                <motion.div 
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '100%' }}
-                  transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                  style={{ width: '50%', height: '100%', background: '#6ce5dc' }}
-                />
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!isAppLoading && (
-        <Container className="fx-console">
-            <Header>
-              {emailId && (
-                <button 
-                  onClick={() => router.push('/dashboard')}
-                  className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 px-3 py-1 bg-cyan-950/20 transition-all rounded-sm"
-                >
-                  <ArrowLeft className="w-3 h-3" /> До інбоксу
-                </button>
-              )}
-            </Header>
+              <ArrowLeft className="w-3 h-3" /> До інбоксу
+            </button>
+          )}
+        </Header>
 
             <StatusRow
               statusText={state.value === 'inferencing' && state.context.modelProgress ? state.context.modelProgress : stateLabel as string}
@@ -672,7 +596,6 @@ function ForensicDashboardContent() {
               </motion.section>
             )}
         </Container>
-      )}
 
       {/* Reusable Modals */}
       <OcrUploadModal
@@ -691,9 +614,19 @@ function ForensicDashboardContent() {
 }
 
 export default function ForensicDashboard() {
+  const [isBootDone, setIsBootDone] = useState(false);
+
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-950 text-cyan-500 flex items-center justify-center font-mono animate-pulse">Завантаження...</div>}>
-      <ForensicDashboardContent />
-    </Suspense>
+    <>
+      <AnimatePresence>
+        {!isBootDone && (
+          <SecurityBootLoader onComplete={() => setIsBootDone(true)} />
+        )}
+      </AnimatePresence>
+
+      <Suspense fallback={null}>
+        <ForensicDashboardContent />
+      </Suspense>
+    </>
   );
 }
