@@ -48,7 +48,6 @@ function ForensicDashboardContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: session, update } = useSession();
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
   
   const [safeBrowsingMatches, setSafeBrowsingMatches] = useState<any[]>([]);
 
@@ -367,8 +366,6 @@ function ForensicDashboardContent() {
             <StatusRow
               statusText={state.value === 'inferencing' && state.context.modelProgress ? state.context.modelProgress : stateLabel as string}
               sessionEmail={session?.user?.email || null}
-              showUserDropdown={showUserDropdown}
-              setShowUserDropdown={setShowUserDropdown}
               setShowSecurityModal={setShowSecurityModal}
               onLogout={async () => {
                 await fetch('/api/auth/logout', { method: 'POST' });
