@@ -1,40 +1,87 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Shield, ArrowLeft, Mail, RefreshCw, AlertTriangle, CheckCircle, Search, Trash2 } from "lucide-react";
+import { 
+  Mail, RefreshCw, ArrowLeft, Search, Trash2, ShieldCheck, 
+  ShieldAlert, AlertTriangle, Clock, Filter, ArrowUpDown, 
+  CheckCircle, ChevronLeft, ChevronRight, Inbox, Eye
+} from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+
+interface EmailRecord {
+  id: string;
+  messageId: string;
+  senderEmail: string;
+  sender?: string;
+  subject: string | null;
+  textBody: string;
+  oracleScore: number | null;
+  oracleLabel: string | null;
+  status: 'PENDING' | 'ANALYZED' | 'DELETED';
+  createdAt: string;
+}
+
+interface CategoryCounts {
+  all: number;
+  safe: number;
+  phishing: number;
+  spam: number;
+  pending: number;
+}
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [emails, setEmails] = useState<any[]>([]);
+
+  const [emails, setEmails] = useState<EmailRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+
+  // Filters & Pagination State
+  const [activeFilter, setActiveFilter] = useState<'all' | 'safe' | 'phishing' | 'spam' | 'pending'>('all');
+  const [sortBy, setSortBy] = useState<string>('date_desc');
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [counts, setCounts] = useState<CategoryCounts>({ all: 0, safe: 0, phishing: 0, spam: 0, pending: 0 });
+
+  // Search State
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [emailToDelete, setEmailToDelete] = useState<string | null>(null);
 
-  // Debounce search query
+  // Deletion Modal State
+  const [emailToDelete, setEmailToDelete] = useState<EmailRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      setPage(1); // reset to page 1 on new search
+    }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const fetchInbox = async (targetPage = page) => {
+  const fetchInbox = async (targetPage = page, filter = activeFilter, sort = sortBy) => {
     try {
-      const res = await fetch(`/api/inbox?page=${targetPage}&limit=10&query=${encodeURIComponent(debouncedQuery)}&_t=${Date.now()}`, {
-        cache: 'no-store'
-      });
+      const url = `/api/inbox?page=${targetPage}&limit=${limit}&query=${encodeURIComponent(debouncedQuery)}&filter=${filter}&sortBy=${sort}&_t=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
-        setEmails(data.emails);
+        setEmails(data.emails || []);
         setTotalPages(data.pagination.pages || 1);
+        setTotalCount(data.pagination.total || 0);
+        if (data.counts) {
+          setCounts(data.counts);
+        }
       }
     } catch (error) {
-      console.error("Failed to load inbox", error);
+      console.error("Помилка завантаження інбоксу:", error);
     } finally {
       setLoading(false);
     }
@@ -50,237 +97,470 @@ export default function Dashboard() {
       const data = await res.json();
       if (data.success) {
         setPage(1);
-        await fetchInbox(1);
+        await fetchInbox(1, activeFilter, sortBy);
       }
     } catch (error) {
-      console.error("Failed to sync", error);
+      console.error("Помилка синхронізації:", error);
     } finally {
       setSyncing(false);
     }
   };
-  
-  const deleteEmail = async (id: string) => {
-    setEmailToDelete(id); return;
+
+  const handleConfirmDelete = async () => {
+    if (!emailToDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/inbox/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/inbox/${emailToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        fetchInbox();
+        setEmailToDelete(null);
+        await fetchInbox(page, activeFilter, sortBy);
       }
     } catch (error) {
-      console.error("Failed to delete", error);
+      console.error("Помилка видалення:", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
-  
+
+  const handleFilterChange = (newFilter: 'all' | 'safe' | 'phishing' | 'spam' | 'pending') => {
+    setActiveFilter(newFilter);
+    setPage(1);
+  };
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
     } else if (status === "authenticated") {
-      fetchInbox();
+      fetchInbox(page, activeFilter, sortBy);
     }
-  }, [status, router, page, debouncedQuery]);
+  }, [status, router, page, activeFilter, sortBy, debouncedQuery, limit]);
 
-  if (status === "loading" || loading) {
-    return <div className="min-h-screen bg-[#0b1013] text-cyan-500 flex items-center justify-center font-mono animate-pulse">Завантаження пошти...</div>;
+  if (status === "loading" || (loading && emails.length === 0)) {
+    return (
+      <div className="min-h-screen bg-[#09090b] text-cyan-500 flex items-center justify-center font-mono animate-pulse">
+        Завантаження інбоксу...
+      </div>
+    );
   }
 
-  const confirmDelete = async () => { if (!emailToDelete) return; try { const res = await fetch(`/api/inbox/${emailToDelete}`, { method: "DELETE" }); const data = await res.json(); if (data.success) { fetchInbox(); } } catch (error) { console.error("Failed to delete", error); } finally { setEmailToDelete(null); } };
+  const startRecord = totalCount === 0 ? 0 : (page - 1) * limit + 1;
+  const endRecord = Math.min(page * limit, totalCount);
+
   return (
-    <div className="min-h-screen bg-[#0b1013] text-gray-300 font-mono p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b border-gray-800 pb-4 gap-4">
+    <div className="min-h-screen bg-[#09090b] text-zinc-300 font-mono p-4 sm:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-zinc-800 pb-5 gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Mail className="w-8 h-8 text-cyan-400" />
-              <h1 className="text-3xl font-bold text-white tracking-tight">Інбокс</h1>
-            </div>
-            <p className="text-sm text-gray-500">
-              Листи, переслані від <span className="text-cyan-400">{session?.user?.email}</span>
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-10 h-10 rounded-lg bg-cyan-950/40 border border-cyan-500/30 flex items-center justify-center">
+                <Mail className="w-5 h-5 text-cyan-400" />
               </div>
-              <input
-                type="text"
-                placeholder="Пошук листів..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded bg-gray-900 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors"
-              />
+              <div>
+                <h1 className="text-2xl font-bold text-white tracking-tight">
+                  Інбокс та історія перевірок
+                </h1>
+                <p className="text-xs text-zinc-400">
+                  Скринька моніторингу: <span className="text-cyan-400">{session?.user?.email}</span>
+                </p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={syncEmails}
-                disabled={syncing}
-                className="flex items-center gap-2 text-xs bg-gray-900 border border-gray-700 hover:border-cyan-500 px-4 py-2 transition-all rounded disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Синхронізація...' : 'Синхронізувати'}
-              </button>
-              <button 
-                onClick={() => router.push("/")}
-                className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 px-4 py-2 bg-cyan-950/20 transition-all rounded whitespace-nowrap"
-              >
-                <ArrowLeft className="w-4 h-4" /> Назад
-              </button>
-            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full md:w-auto">
+            <button 
+              onClick={syncEmails}
+              disabled={syncing}
+              className="flex-1 md:flex-initial flex items-center justify-center gap-2 text-xs bg-zinc-900 border border-zinc-700 hover:border-cyan-500 text-zinc-200 px-4 py-2 transition-all rounded-md disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-cyan-400' : ''}`} />
+              <span>{syncing ? 'Синхронізація...' : 'Оновити пошту'}</span>
+            </button>
+
+            <button 
+              onClick={() => router.push("/")}
+              className="flex-1 md:flex-initial flex items-center justify-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 px-4 py-2 bg-cyan-950/20 transition-all rounded-md"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>До сканера</span>
+            </button>
           </div>
         </header>
 
-        {emails.length === 0 ? (
-          <div className="text-center py-20 border border-dashed border-gray-800 rounded-lg bg-gray-900/50">
-            {searchQuery ? (
-               <>
-                 <Search className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-                 <h2 className="text-xl text-gray-400">Нічого не знайдено</h2>
-                 <p className="text-gray-600 mt-2">За запитом "{searchQuery}" листів немає.</p>
-               </>
-            ) : (
-               <>
-                 <Mail className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-                 <h2 className="text-xl text-gray-400">Скринька порожня</h2>
-                 <p className="text-gray-600 mt-2">
-                   Перешліть будь-який підозрілий лист на <strong className="text-cyan-500">{process.env.NEXT_PUBLIC_SMTP_USER || "нашу пошту"}</strong>, 
-                   і натисніть "Синхронізувати".
-                 </p>
-               </>
-            )}
+        {/* Filter Pills and Quick Stats */}
+        <div className="space-y-4">
+          {/* Category Tabs */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800/80 pb-3">
+            <button
+              onClick={() => handleFilterChange('all')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all border ${
+                activeFilter === 'all'
+                  ? 'bg-zinc-800 border-zinc-600 text-white font-semibold'
+                  : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Усі листи</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-700/60 text-zinc-300">
+                {counts.all}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleFilterChange('safe')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all border ${
+                activeFilter === 'safe'
+                  ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 font-semibold shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                  : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-emerald-300 hover:border-emerald-500/30'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Безпечні</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-900/40 text-emerald-400">
+                {counts.safe}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleFilterChange('phishing')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all border ${
+                activeFilter === 'phishing'
+                  ? 'bg-rose-950/50 border-rose-500/50 text-rose-300 font-semibold shadow-[0_0_12px_rgba(244,63,94,0.15)]'
+                  : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-rose-300 hover:border-rose-500/30'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+              <span>Фішинг</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-900/40 text-rose-400">
+                {counts.phishing}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleFilterChange('spam')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all border ${
+                activeFilter === 'spam'
+                  ? 'bg-amber-950/50 border-amber-500/50 text-amber-300 font-semibold shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                  : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-amber-300 hover:border-amber-500/30'
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              <span>Спам</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-900/40 text-amber-400">
+                {counts.spam}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleFilterChange('pending')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all border ${
+                activeFilter === 'pending'
+                  ? 'bg-cyan-950/50 border-cyan-500/50 text-cyan-300 font-semibold shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                  : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-cyan-300 hover:border-cyan-500/30'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Очікують перевірки</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-900/40 text-cyan-400">
+                {counts.pending}
+              </span>
+            </button>
           </div>
-        ) : (
-          <div className="grid gap-4">
-            {emails.map((email) => (
-              <div key={email.id} className="bg-gray-900/80 border border-gray-800 rounded p-5 flex flex-col md:flex-row gap-6 items-start md:items-center relative overflow-hidden transition-all hover:border-gray-600">
-                
-                {email.status === 'ANALYZED' && email.oracleScore !== null && (
-                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                     (email.oracleLabel === 'phishing' || (!email.oracleLabel && email.oracleScore > 0.6))
-                       ? 'bg-red-500'
-                       : email.oracleLabel === 'spam'
-                         ? 'bg-amber-500'
-                         : 'bg-emerald-500'
-                   }`}></div>
-                )}
-                {email.status === 'PENDING' && (
-                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400"></div>
-                )}
 
-                <div className="flex-1 min-w-0 pl-2">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xs text-gray-500">{new Date(email.createdAt).toLocaleString()}</span>
-                    {email.status === 'PENDING' ? (
-                      <span className="text-xs font-medium text-amber-400 border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                        Не проаналізовано
-                      </span>
-                    ) : (() => {
-                      const isPhish = email.oracleLabel === 'phishing' || (!email.oracleLabel && email.oracleScore > 0.6);
-                      const isSpam = email.oracleLabel === 'spam';
-                      const label = isPhish ? 'Фішинг' : isSpam ? 'Спам' : 'Безпечно';
-                      const badgeColor = isPhish 
-                        ? 'text-red-400 border-red-500/30 bg-red-500/10' 
-                        : isSpam 
-                          ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' 
-                          : 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
-                      const dotColor = isPhish ? 'bg-red-400' : isSpam ? 'bg-amber-400' : 'bg-emerald-400';
-                      const percent = email.oracleScore !== null ? `${(email.oracleScore * 100).toFixed(1)}%` : '';
-
-                      return (
-                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1.5 ${badgeColor}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></span>
-                          {label} {percent ? `(${percent})` : ''}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <h3 className="text-lg text-white font-semibold truncate mb-1">{email.subject}</h3>
-                  <p className="text-sm text-gray-400 truncate mb-2">Від: <span className="text-cyan-400">{email.senderEmail || email.sender}</span></p>
-                  <p className="text-xs text-gray-500 line-clamp-2">{email.textBody}</p>
-                </div>
-
-                <div className="flex flex-col gap-2 min-w-[140px] w-full md:w-auto">
-                  {email.status === 'PENDING' ? (
-                    <button 
-                      onClick={() => router.push(`/?emailId=${email.id}`)}
-                      className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded text-xs flex items-center justify-center gap-2 transition"
-                    >
-                      <Search className="w-4 h-4" /> Аналіз
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => router.push(`/?emailId=${email.id}`)}
-                      className="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-xs flex items-center justify-center gap-2 transition border border-gray-600"
-                    >
-                      Переглянути
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => deleteEmail(email.id)}
-                    className="w-full bg-transparent hover:bg-red-500/10 text-red-500 border border-red-500/30 hover:border-red-500 py-1.5 px-4 rounded text-xs flex items-center justify-center gap-2 transition"
-                  >
-                    <Trash2 className="w-4 h-4" /> Видалити
-                  </button>
-                </div>
-              </div>
-            ))}
-            
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-6">
-                <button 
-                  disabled={page === 1}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  className="px-4 py-2 border border-gray-700 rounded text-sm text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          {/* Search Bar & Sorters Toolbar */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Пошук за темою, відправником або змістом..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-zinc-900/80 border border-zinc-800 rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs"
                 >
-                  Попередня
+                  ✕
                 </button>
-                <span className="text-sm text-gray-500">Сторінка <span className="text-white">{page}</span> з {totalPages}</span>
-                <button 
-                  disabled={page >= totalPages}
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  className="px-4 py-2 border border-gray-700 rounded text-sm text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                >
-                  Наступна
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
 
-      {/* Delete Confirmation Modal */}
-      {emailToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
-          <div className="bg-[#11181b] border border-red-500/30 p-6 rounded-lg max-w-sm w-full shadow-2xl shadow-red-500/10 transform transition-all scale-100">
-            <h3 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              Видалення листа
-            </h3>
-            <p className="text-gray-400 text-sm mb-6 font-sans">
-              Ви впевнені, що хочете назавжди видалити цей лист? Цю дію неможливо скасувати.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setEmailToDelete(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white bg-transparent border border-gray-700 hover:bg-gray-800 rounded transition"
-              >
-                Скасувати
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500/80 hover:bg-red-500 border border-red-600 rounded shadow-[0_0_10px_rgba(239,68,68,0.3)] transition"
-              >
-                Видалити
-              </button>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end text-xs">
+              {/* Sort Order Selector */}
+              <div className="flex items-center gap-1.5 bg-zinc-900/80 border border-zinc-800 px-2.5 py-1.5 rounded-lg">
+                <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-zinc-300 focus:outline-none text-xs cursor-pointer"
+                >
+                  <option value="date_desc" className="bg-zinc-900 text-white">Найновіші спочатку</option>
+                  <option value="date_asc" className="bg-zinc-900 text-white">Найстаріші спочатку</option>
+                  <option value="risk_desc" className="bg-zinc-900 text-white">Найвищий ризик</option>
+                  <option value="risk_asc" className="bg-zinc-900 text-white">Найнижчий ризик</option>
+                </select>
+              </div>
+
+              {/* Page size limit */}
+              <div className="flex items-center gap-1.5 bg-zinc-900/80 border border-zinc-800 px-2.5 py-1.5 rounded-lg">
+                <span className="text-zinc-500 text-[11px]">По:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-zinc-300 focus:outline-none text-xs cursor-pointer"
+                >
+                  <option value={10} className="bg-zinc-900 text-white">10</option>
+                  <option value={25} className="bg-zinc-900 text-white">25</option>
+                  <option value={50} className="bg-zinc-900 text-white">50</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Emails List */}
+        {emails.length === 0 ? (
+          <div className="text-center py-20 border border-dashed border-zinc-800 rounded-xl bg-zinc-950/40 p-6 space-y-3">
+            {searchQuery || activeFilter !== 'all' ? (
+              <>
+                <Search className="w-12 h-12 text-zinc-600 mx-auto" />
+                <h3 className="text-base font-semibold text-zinc-300">
+                  За обраними фільтрами листів не знайдено
+                </h3>
+                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                  Спробуйте змінити фільтр або очистити пошуковий запит
+                </p>
+                <button
+                  onClick={() => {
+                    setActiveFilter('all');
+                    setSearchQuery('');
+                  }}
+                  className="mt-2 text-xs text-cyan-400 hover:underline"
+                >
+                  Скинути всі фільтри
+                </button>
+              </>
+            ) : (
+              <>
+                <Mail className="w-12 h-12 text-zinc-600 mx-auto" />
+                <h3 className="text-base font-semibold text-zinc-300">
+                  Поштова скринька порожня
+                </h3>
+                <p className="text-xs text-zinc-500 max-w-md mx-auto leading-relaxed">
+                  Перешліть будь-який підозрілий лист на пошту моніторингу або скористайтеся прямим аналізом у сканері.
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {emails.map((email) => {
+              const isPhish = email.oracleLabel === 'phishing' || (!email.oracleLabel && (email.oracleScore || 0) > 0.6);
+              const isSpam = email.oracleLabel === 'spam';
+              const isSafe = email.status === 'ANALYZED' && !isPhish && !isSpam;
+
+              const borderHighlight = email.status === 'PENDING'
+                ? 'border-l-4 border-l-cyan-500'
+                : isPhish
+                  ? 'border-l-4 border-l-rose-500'
+                  : isSpam
+                    ? 'border-l-4 border-l-amber-500'
+                    : 'border-l-4 border-l-emerald-500';
+
+              return (
+                <div 
+                  key={email.id} 
+                  className={`bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between transition-all hover:border-zinc-700 hover:shadow-lg ${borderHighlight}`}
+                >
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    {/* Status & Date Row */}
+                    <div className="flex items-center gap-3 flex-wrap text-xs">
+                      <span className="text-zinc-500 text-[11px]">
+                        {new Date(email.createdAt).toLocaleString('uk-UA')}
+                      </span>
+
+                      {email.status === 'PENDING' ? (
+                        <Badge variant="info" size="sm" pulse icon={<Clock className="w-3 h-3" />}>
+                          Очікує аналізу
+                        </Badge>
+                      ) : isPhish ? (
+                        <Badge variant="danger" size="sm" icon={<ShieldAlert className="w-3 h-3" />}>
+                          Фішинг {email.oracleScore !== null ? `(${Math.round(email.oracleScore * 100)}%)` : ''}
+                        </Badge>
+                      ) : isSpam ? (
+                        <Badge variant="warning" size="sm" icon={<AlertTriangle className="w-3 h-3" />}>
+                          Спам {email.oracleScore !== null ? `(${Math.round(email.oracleScore * 100)}%)` : ''}
+                        </Badge>
+                      ) : (
+                        <Badge variant="safe" size="sm" icon={<ShieldCheck className="w-3 h-3" />}>
+                          Безпечно
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Subject */}
+                    <h3 className="text-sm sm:text-base font-semibold text-white truncate">
+                      {email.subject || "Без теми"}
+                    </h3>
+
+                    {/* Sender */}
+                    <p className="text-xs text-zinc-400 truncate">
+                      <span className="text-zinc-500">Відправник: </span>
+                      <span className="text-cyan-400">{email.senderEmail || email.sender}</span>
+                    </p>
+
+                    {/* Snippet */}
+                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed font-sans">
+                      {email.textBody}
+                    </p>
+                  </div>
+
+                  {/* Actions Column */}
+                  <div className="flex items-center gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-zinc-800/80">
+                    {email.status === 'PENDING' ? (
+                      <Button
+                        variant="primary"
+                        onClick={() => router.push(`/?emailId=${email.id}`)}
+                        className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 text-xs py-2 px-4"
+                      >
+                        <Search className="w-3.5 h-3.5" />
+                        <span>Аналіз</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push(`/?emailId=${email.id}`)}
+                        className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 text-xs py-2 px-3 border-zinc-700 hover:border-cyan-400 text-zinc-200"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Звіт</span>
+                      </Button>
+                    )}
+
+                    <button
+                      onClick={() => setEmailToDelete(email)}
+                      className="p-2 rounded-md border border-zinc-800 hover:border-rose-500/40 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/20 transition-all"
+                      title="Видалити лист з інбоксу"
+                      aria-label="Видалити"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Pagination Controls */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-zinc-800 text-xs">
+              <div className="text-zinc-500 text-[11px]">
+                Показано <span className="text-white font-medium">{startRecord}–{endRecord}</span> з{" "}
+                <span className="text-white font-medium">{totalCount}</span> листів
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className="p-2 border border-zinc-800 rounded-md text-zinc-400 hover:text-white hover:border-zinc-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    aria-label="Попередня сторінка"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {/* Page numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .map((p, idx, arr) => {
+                      const showEllipsis = idx > 0 && p - arr[idx - 1] > 1;
+                      return (
+                        <div key={p} className="flex items-center">
+                          {showEllipsis && <span className="px-1 text-zinc-600">...</span>}
+                          <button
+                            onClick={() => setPage(p)}
+                            className={`w-8 h-8 rounded-md text-xs font-mono transition-all border ${
+                              p === page
+                                ? 'bg-cyan-950/50 border-cyan-500/60 text-cyan-300 font-bold shadow-[0_0_10px_rgba(6,182,212,0.15)]'
+                                : 'border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 bg-zinc-900/40'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                  <button
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    className="p-2 border border-zinc-800 rounded-md text-zinc-400 hover:text-white hover:border-zinc-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    aria-label="Наступна сторінка"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Delete Confirmation Modal using Reusable Modal */}
+      <Modal
+        isOpen={Boolean(emailToDelete)}
+        onClose={() => setEmailToDelete(null)}
+        title="Видалення листа"
+        description="Підтвердіть видалення обраного листа з інбоксу"
+        icon={<AlertTriangle className="w-5 h-5 text-rose-400" />}
+        maxWidth="md"
+        footer={
+          <>
+            <button
+              onClick={() => setEmailToDelete(null)}
+              disabled={isDeleting}
+              className="px-4 py-2 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800/80 border border-zinc-700 rounded-md transition"
+            >
+              Скасувати
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="px-4 py-2 text-xs font-medium text-white bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded-md shadow-[0_0_15px_rgba(244,63,94,0.3)] transition"
+            >
+              {isDeleting ? "Видалення..." : "Видалити"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3 font-mono text-xs">
+          <p className="text-zinc-300 leading-relaxed font-sans">
+            Ви дійсно бажаєте видалити цей лист із результатами аналізу?
+          </p>
+          {emailToDelete && (
+            <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
+              <div className="text-white font-semibold truncate">
+                {emailToDelete.subject || "Без теми"}
+              </div>
+              <div className="text-zinc-400 text-[11px] truncate">
+                Від: <span className="text-cyan-400">{emailToDelete.senderEmail}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
 
     </div>
   );
 }
-
