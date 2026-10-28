@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Panel } from '@/components/ui/Panel';
 import { 
   ShieldAlert, ShieldCheck, Cpu, Globe, Fingerprint, 
-  ChevronDown, ChevronUp, Info, AlertTriangle, Layers
+  ChevronDown, ChevronUp, Info, AlertTriangle, Layers,
+  FileDown, Printer
 } from 'lucide-react';
 import styles from './VerdictPanel.module.scss';
+import { PhishingVector } from '@/core/heuristics';
 
 export interface VerdictBreakdown {
   mlScore?: number;
@@ -23,6 +25,7 @@ interface VerdictPanelProps {
   threatLevel: number;
   isSpam?: boolean;
   breakdown?: VerdictBreakdown;
+  vectors?: PhishingVector[];
   onExportReport?: () => void;
 }
 
@@ -30,6 +33,7 @@ export const VerdictPanel = ({
   threatLevel, 
   isSpam, 
   breakdown,
+  vectors = [],
   onExportReport 
 }: VerdictPanelProps) => {
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -48,7 +52,7 @@ export const VerdictPanel = ({
 
   const getVerdictDesc = (level: number) => {
     if (level > 70) {
-      return 'Виявлено критичні ознаки фішингу, підміни відправника або шкідливого програмного забезпечення. Не пере переходьте за посиланнями та не передавайте дані.';
+      return 'Виявлено критичні ознаки фішингу, підміни відправника або шкідливого програмного забезпечення. Не переходьте за посиланнями та не передавайте конфіденційні дані.';
     }
     if (level > 40) {
       return isSpam 
@@ -63,6 +67,17 @@ export const VerdictPanel = ({
       title="Висновок"
       headerRight={
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {onExportReport && (
+            <button
+              onClick={onExportReport}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/40 hover:border-cyan-300 bg-cyan-950/30 hover:bg-cyan-950/60 text-cyan-300 hover:text-white"
+              title="Сформувати офіційний криміналістичний PDF-звіт"
+            >
+              <FileDown className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Експорт звіту (PDF)</span>
+            </button>
+          )}
+
           <button
             onClick={() => setShowBreakdown(!showBreakdown)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300"
@@ -95,7 +110,7 @@ export const VerdictPanel = ({
             <span className={styles.scoreSub}>Ризик / 100</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <h3
                 style={{
@@ -146,7 +161,7 @@ export const VerdictPanel = ({
               )}
             </div>
 
-            <p style={{ margin: 0, color: 'var(--fx-muted)', fontSize: '13px', lineHeight: '1.5' }}>
+            <p style={{ margin: 0, color: 'var(--fx-muted)', fontSize: '13px', lineHeight: '1.5', wordBreak: 'break-word' }}>
               {getVerdictDesc(threatLevel)}
             </p>
           </div>
@@ -212,7 +227,7 @@ export const VerdictPanel = ({
                     </div>
                   </div>
 
-                  {/* Factor 3: URL & Infrastructure */}
+                  {/* Factor 3: URL & Infrastructure (Clarified Blacklist wording) */}
                   <div className="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex flex-col justify-between gap-1.5 min-w-0 transition-all hover:border-emerald-500/30">
                     <div className="flex items-center gap-2 text-zinc-400">
                       <Globe className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -222,23 +237,52 @@ export const VerdictPanel = ({
                       {breakdown?.hasHardBlacklist ? 'Чорний список' : breakdown?.hasMlUrlThreat ? 'ML-підозра' : 'Чисті'}
                     </div>
                     <div className="text-[11px] text-zinc-500 leading-snug break-words">
-                      {breakdown?.hasHardBlacklist ? 'Занесено до баз загроз' : 'Перевірка DNS та Safe Browsing'}
+                      {breakdown?.hasHardBlacklist 
+                        ? 'Виявлено в глобальних базах (Google/URLhaus)' 
+                        : breakdown?.hasMlUrlThreat 
+                          ? 'Підозра нейромережевого аналізу URL'
+                          : 'Перевірено: загроз у базах не виявлено'}
                     </div>
                   </div>
 
-                  {/* Factor 4: Heuristics & Obfuscation */}
+                  {/* Factor 4: Heuristics & Explicit Triggers List */}
                   <div className="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex flex-col justify-between gap-1.5 min-w-0 transition-all hover:border-amber-500/30">
-                    <div className="flex items-center gap-2 text-zinc-400">
-                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span className="font-medium text-xs text-zinc-300 truncate">Евристика</span>
+                    <div className="flex items-center justify-between gap-1 text-zinc-400">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span className="font-medium text-xs text-zinc-300 truncate">Евристика</span>
+                      </div>
+                      <span className="text-[10px] text-cyan-400 font-mono">
+                        {vectors.length} {vectors.length === 1 ? 'тригер' : 'тригерів'}
+                      </span>
                     </div>
-                    <div className="font-semibold text-sm truncate" style={{ color: (breakdown?.obfuscationScore || 0) > 0 ? 'var(--fx-red)' : 'var(--fx-green)' }}>
+
+                    {/* Explicit list of triggers with scrollbar for long lists */}
+                    {vectors.length > 0 ? (
+                      <div className="flex flex-col gap-1 max-h-24 overflow-y-auto cyber-scrollbar pr-1 my-1">
+                        {vectors.map((v, i) => (
+                          <div 
+                            key={v.id || i} 
+                            className="flex items-center justify-between text-[10px] bg-zinc-900/90 px-1.5 py-0.5 rounded border border-zinc-800"
+                            title={v.explanation || v.trigger}
+                          >
+                            <span className="truncate text-zinc-300">{v.trigger}</span>
+                            <span className="font-mono text-amber-400 font-semibold shrink-0 ml-1">
+                              {(v.score * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="font-semibold text-sm text-emerald-400 py-1">
+                        Чистий текст
+                      </div>
+                    )}
+
+                    <div className="text-[11px] text-zinc-500 leading-snug break-words">
                       {(breakdown?.obfuscationScore || 0) > 0 
                         ? `Обфускація (+${Math.round((breakdown?.obfuscationScore || 0) * 100)}%)` 
-                        : (breakdown?.triggersCount ? `${breakdown.triggersCount} тригерів` : 'Без тригерів')}
-                    </div>
-                    <div className="text-[11px] text-zinc-500 leading-snug break-words">
-                      Аналіз прихованих символів та слів
+                        : 'Семантичні маркери та гомогліфи'}
                     </div>
                   </div>
                 </div>

@@ -140,13 +140,8 @@ export const InputPanel = ({
                 extractedUrls={extractedUrls}
                 extractedIps={extractedIps}
                 safeBrowsingMatches={safeBrowsingMatches}
-                selectedVectorId={activeNode?.id}
+                selectedVectorId={null}
                 hoveredVectorId={hoveredVectorId}
-                onVectorSelect={(id) => {
-                  if (setActiveNode) {
-                     setActiveNode(vectors.find(v => v.id === id) || null);
-                  }
-                }}
                 onVectorHover={setHoveredVectorId}
               />
             </div>

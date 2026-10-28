@@ -152,10 +152,9 @@ export function FormattedTextDisplay({
         return (
           <span 
             key={i} 
-            onClick={() => onVectorSelect?.(isSelected ? null : matchedVectorId)}
             onMouseEnter={() => onVectorHover?.(matchedVectorId)}
             onMouseLeave={() => onVectorHover?.(null)}
-            title="Клікніть, щоб побачити аналіз цього тригера"
+            title={`Виявлено тригер: ${part}`}
             style={{ 
               backgroundColor: isSelected 
                 ? 'rgba(255, 215, 0, 0.35)' 
@@ -165,7 +164,7 @@ export function FormattedTextDisplay({
               color: isSelected ? '#ffffff' : isHovered ? 'var(--fx-cyan)' : '#fbbf24', 
               padding: '1px 5px', 
               borderRadius: '3px',
-              cursor: 'pointer',
+              cursor: 'default',
               border: isSelected 
                 ? `1px solid ${vecColor}` 
                 : isHovered 
@@ -192,22 +191,25 @@ export function FormattedTextDisplay({
   }, [cleanText, vectors, extractedUrls, extractedIps, safeBrowsingMatches, selectedVectorId, hoveredVectorId, onVectorSelect, onVectorHover]);
 
   return (
-    <div style={{
-      marginTop: '16px',
-      padding: '16px',
-      background: 'rgba(0,0,0,0.3)',
-      border: '1px solid var(--fx-line)',
-      borderRadius: '8px',
-      fontFamily: 'var(--fx-mono)',
-      fontSize: '13px',
-      lineHeight: '1.6',
-      maxHeight: '400px',
-      overflowY: 'auto',
-      whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word',
-      overflowWrap: 'anywhere',
-      backdropFilter: 'blur(6px)'
-    }}>
+    <div 
+      className="cyber-scrollbar"
+      style={{
+        marginTop: '16px',
+        padding: '16px',
+        background: 'rgba(0,0,0,0.3)',
+        border: '1px solid var(--fx-line)',
+        borderRadius: '8px',
+        fontFamily: 'var(--fx-mono)',
+        fontSize: '13px',
+        lineHeight: '1.6',
+        maxHeight: '320px',
+        overflowY: 'auto',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        backdropFilter: 'blur(6px)'
+      }}
+    >
       <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--fx-line)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <div><strong>Відправник:</strong> {senderEmail ? <span style={{ color: 'var(--fx-cyan)' }}>{senderEmail}</span> : 'Не вказано'}</div>
         {isTrusted && (

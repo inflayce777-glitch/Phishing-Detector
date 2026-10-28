@@ -66,7 +66,31 @@ const statements = [
       "status" TEXT NOT NULL DEFAULT 'PENDING',
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT "ScannedEmail_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-  );`
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "ScanAuditLog" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "userId" TEXT,
+      "threatScore" INTEGER NOT NULL,
+      "verdictLabel" TEXT NOT NULL,
+      "scanType" TEXT NOT NULL DEFAULT 'email',
+      "senderEmail" TEXT,
+      "targetUrl" TEXT,
+      "subject" TEXT,
+      "textSnippet" TEXT,
+      "triggers" TEXT,
+      "detectedDomains" TEXT,
+      "threatSources" TEXT,
+      "authSummary" TEXT,
+      "hasObfuscation" BOOLEAN NOT NULL DEFAULT 0,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "ScanAuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+  );`,
+
+  `CREATE INDEX IF NOT EXISTS "ScanAuditLog_createdAt_idx" ON "ScanAuditLog"("createdAt");`,
+  `CREATE INDEX IF NOT EXISTS "ScanAuditLog_verdictLabel_idx" ON "ScanAuditLog"("verdictLabel");`,
+  `CREATE INDEX IF NOT EXISTS "ScanAuditLog_threatScore_idx" ON "ScanAuditLog"("threatScore");`,
+  `CREATE INDEX IF NOT EXISTS "ScanAuditLog_userId_idx" ON "ScanAuditLog"("userId");`
 ];
 
 async function migrate() {

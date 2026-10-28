@@ -20,6 +20,7 @@ model User {
   totpSecret    String?
   totpEnabled   Boolean   @default(false)
   scannedEmails ScannedEmail[]
+  scanLogs      ScanAuditLog[]
 }
 
 model Account {
@@ -73,4 +74,29 @@ model ScannedEmail {
   createdAt     DateTime @default(now())
 
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ScanAuditLog {
+  id              String   @id @default(cuid())
+  userId          String?
+  threatScore     Int      // 0 - 100
+  verdictLabel    String   // 'safe', 'suspicious', 'phishing', 'spam'
+  scanType        String   @default("email") // 'email', 'messenger', 'url', 'ocr'
+  senderEmail     String?
+  targetUrl       String?
+  subject         String?
+  textSnippet     String?
+  triggers        String?  // JSON string
+  detectedDomains String?  // JSON string
+  threatSources   String?  // JSON string
+  authSummary     String?  // 'PASS', 'FAIL', 'NONE'
+  hasObfuscation  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([verdictLabel])
+  @@index([threatScore])
+  @@index([userId])
 }
