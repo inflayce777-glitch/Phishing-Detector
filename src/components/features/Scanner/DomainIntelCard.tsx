@@ -42,6 +42,14 @@ export const DomainIntelCard: React.FC<DomainIntelCardProps> = ({
                   >
                     {b.candidateDomain}
                   </span>
+                  {b.technique && b.isImpersonation && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-rose-950/60 text-rose-300 border border-rose-500/30">
+                      {b.technique === 'Visual Homoglyph' ? 'Оптичний гомогліф' :
+                       b.technique === 'Keyboard Proximity' ? 'QWERTY промах' :
+                       b.technique === 'Combosquatting' ? 'Комбосквотинг' :
+                       b.technique === 'IDN Homoglyph' ? 'IDN Punycode' : 'Тайпосквотинг'}
+                    </span>
+                  )}
                   <p className="text-zinc-400 text-[11px] mt-0.5 leading-relaxed">
                     {b.explanation}
                   </p>

@@ -290,9 +290,15 @@ const runInferenceActor = fromPromise(
       brandResults.push(bRes);
 
       if (bRes.isImpersonation) {
+        const triggerPrefix = 
+          bRes.technique === 'Visual Homoglyph' ? 'Оптичний гомогліф' :
+          bRes.technique === 'Keyboard Proximity' ? 'Клавіатурний промах' :
+          bRes.technique === 'Combosquatting' ? 'Комбосквотинг' :
+          'Тайпосквотинг';
+
         heuristics.vectors.push({
           id: `typosquatting-${bRes.candidateDomain}`,
-          trigger: `Тайпосквотинг: ${bRes.targetBrand?.name || 'бренд'}`,
+          trigger: `${triggerPrefix}: ${bRes.targetBrand?.name || 'бренд'}`,
           score: Math.max(bRes.similarityScore, 0.90),
           explanation: bRes.explanation,
           color: '#ff003c'

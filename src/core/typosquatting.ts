@@ -20,12 +20,65 @@ export interface ProtectedBrand {
 export interface BrandImpersonationResult {
   isImpersonation: boolean;
   targetBrand?: ProtectedBrand;
-  technique?: 'Typosquatting' | 'Combosquatting' | 'IDN Homoglyph' | 'Subdomain Spoofing' | 'Legitimate';
+  technique?: 'Typosquatting' | 'Combosquatting' | 'IDN Homoglyph' | 'Visual Homoglyph' | 'Keyboard Proximity' | 'Subdomain Spoofing' | 'Legitimate';
   similarityScore: number;
   explanation: string;
   candidateDomain: string;
   legitimateDomain?: string;
 }
+
+// QWERTY keyboard physical layout adjacency graph for typosquatting detection
+const QWERTY_ADJACENT: Record<string, string[]> = {
+  'q': ['w', 'a', 's'],
+  'w': ['q', 'e', 'a', 's', 'd'],
+  'e': ['w', 'r', 's', 'd', 'f'],
+  'r': ['e', 't', 'd', 'f', 'g'],
+  't': ['r', 'y', 'f', 'g', 'h'],
+  'y': ['t', 'u', 'g', 'h', 'j'],
+  'u': ['y', 'i', 'h', 'j', 'k'],
+  'i': ['u', 'o', 'j', 'k', 'l'],
+  'o': ['i', 'p', 'k', 'l'],
+  'p': ['o', 'l'],
+  'a': ['q', 'w', 's', 'z'],
+  's': ['q', 'w', 'e', 'a', 'd', 'z', 'x'],
+  'd': ['w', 'e', 'r', 's', 'f', 'x', 'c'],
+  'f': ['e', 'r', 't', 'd', 'g', 'c', 'v'],
+  'g': ['r', 't', 'y', 'f', 'h', 'v', 'b'],
+  'h': ['t', 'y', 'u', 'g', 'j', 'b', 'n'],
+  'j': ['y', 'u', 'i', 'h', 'k', 'n', 'm'],
+  'k': ['u', 'i', 'o', 'j', 'l', 'm'],
+  'l': ['i', 'o', 'p', 'k'],
+  'z': ['a', 's', 'x'],
+  'x': ['s', 'd', 'z', 'c'],
+  'c': ['d', 'f', 'x', 'v'],
+  'v': ['f', 'g', 'c', 'b'],
+  'b': ['g', 'h', 'v', 'n'],
+  'n': ['h', 'j', 'b', 'm'],
+  'm': ['j', 'k', 'n'],
+  '1': ['2', 'q'],
+  '2': ['1', '3', 'q', 'w'],
+  '3': ['2', '4', 'w', 'e'],
+  '4': ['3', '5', 'e', 'r'],
+  '5': ['4', '6', 'r', 't'],
+  '6': ['5', '7', 't', 'y'],
+  '7': ['6', '8', 'y', 'u'],
+  '8': ['7', '9', 'u', 'i'],
+  '9': ['8', '0', 'i', 'o'],
+  '0': ['9', 'o', 'p']
+};
+
+// ASCII optical homoglyphs (multi-char and digit/letter optical illusions)
+const ASCII_HOMOGLYPH_PATTERNS: Array<{ pattern: string; replacement: string; desc: string }> = [
+  { pattern: 'rn', replacement: 'm', desc: '"rn" ↔ "m"' },
+  { pattern: 'cl', replacement: 'd', desc: '"cl" ↔ "d"' },
+  { pattern: 'vv', replacement: 'w', desc: '"vv" ↔ "w"' },
+  { pattern: 'nn', replacement: 'm', desc: '"nn" ↔ "m"' },
+  { pattern: 'uu', replacement: 'w', desc: '"uu" ↔ "w"' },
+  { pattern: '0',  replacement: 'o', desc: '"0" ↔ "o"' },
+  { pattern: '1',  replacement: 'l', desc: '"1" ↔ "l"' },
+  { pattern: 'i',  replacement: 'l', desc: '"i" ↔ "l"' },
+  { pattern: 'l',  replacement: 'i', desc: '"l" ↔ "i"' }
+];
 
 // Multi-part country code TLDs to correctly extract the Second-Level Domain (SLD)
 const MULTI_PART_TLDS = new Set([
@@ -174,7 +227,92 @@ export function detectBrandImpersonation(urlOrDomain: string): BrandImpersonatio
     }
   }
 
-  // 4. Combosquatting detection: Brand keyword + phishing modifier (e.g. privat24-verify, diia-aid)
+  // 4. Check for Visual ASCII Homoglyphs (optical substitutions: rn -> m, cl -> d, vv -> w, 1 -> l, etc.)
+  for (const brand of PROTECTED_BRANDS) {
+    for (const legitDomain of brand.primaryDomains) {
+      const { sld: legitBase } = extractDomainParts(legitDomain);
+      if (!legitBase || legitBase.length < 3) continue;
+
+      for (const h of ASCII_HOMOGLYPH_PATTERNS) {
+        if (domainBase.includes(h.pattern)) {
+          const normalized = domainBase.split(h.pattern).join(h.replacement);
+          if (normalized === legitBase && domainBase !== legitBase) {
+            return {
+              isImpersonation: true,
+              targetBrand: brand,
+              technique: 'Visual Homoglyph',
+              similarityScore: 0.98,
+              explanation: `Виявлено оптичну імітацію (ASCII Homoglyph): домен ${hostname} використовує візуальну схожість ${h.desc} для підміни бренду ${brand.name} (${legitDomain}).`,
+              candidateDomain: hostname,
+              legitimateDomain: legitDomain
+            };
+          }
+        }
+      }
+    }
+  }
+
+  // 5. Check for Keyboard Proximity & Slips (QWERTY adjacent replacement or insertion)
+  for (const brand of PROTECTED_BRANDS) {
+    for (const legitDomain of brand.primaryDomains) {
+      const { sld: legitBase } = extractDomainParts(legitDomain);
+      if (!legitBase || legitBase.length < 4) continue;
+
+      // 5A. Single character adjacent replacement (e.g. pribatbank vs privatbank)
+      if (domainBase.length === legitBase.length && domainBase !== legitBase) {
+        let diffCount = 0;
+        let candDiff = '';
+        let legitDiff = '';
+        for (let i = 0; i < domainBase.length; i++) {
+          if (domainBase[i] !== legitBase[i]) {
+            diffCount++;
+            candDiff = domainBase[i];
+            legitDiff = legitBase[i];
+          }
+        }
+        if (diffCount === 1 && QWERTY_ADJACENT[legitDiff]?.includes(candDiff)) {
+          return {
+            isImpersonation: true,
+            targetBrand: brand,
+            technique: 'Keyboard Proximity',
+            similarityScore: 0.96,
+            explanation: `Виявлено клавіатурний тайпосквотинг (QWERTY Proximity): у домені ${hostname} символ "${candDiff}" розташований поруч із клавішею "${legitDiff}" на клавіатурі (перехоплення друкарської помилки для бренду ${brand.name}).`,
+            candidateDomain: hostname,
+            legitimateDomain: legitDomain
+          };
+        }
+      }
+
+      // 5B. Adjacent key insertion / slip (e.g. privatbanlk vs privatbank)
+      if (domainBase.length === legitBase.length + 1) {
+        for (let i = 0; i < domainBase.length; i++) {
+          const reduced = domainBase.slice(0, i) + domainBase.slice(i + 1);
+          if (reduced === legitBase) {
+            const insertedChar = domainBase[i];
+            const prevChar = i > 0 ? domainBase[i - 1] : null;
+            const nextChar = i < domainBase.length - 1 ? domainBase[i + 1] : null;
+            const isAdjacentSlip = 
+              (prevChar && QWERTY_ADJACENT[prevChar]?.includes(insertedChar)) ||
+              (nextChar && QWERTY_ADJACENT[nextChar]?.includes(insertedChar));
+            
+            if (isAdjacentSlip) {
+              return {
+                isImpersonation: true,
+                targetBrand: brand,
+                technique: 'Keyboard Proximity',
+                similarityScore: 0.94,
+                explanation: `Виявлено випадковий зачіп сусідньої клавіші (QWERTY Slip): у домені ${hostname} додано сусідній символ "${insertedChar}" при введенні імені бренду ${brand.name} (${legitDomain}).`,
+                candidateDomain: hostname,
+                legitimateDomain: legitDomain
+              };
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 6. Combosquatting detection: Brand keyword + phishing modifier (e.g. privat24-verify, diia-aid)
   for (const brand of PROTECTED_BRANDS) {
     for (const kw of brand.keywords) {
       if (domainBase.includes(kw)) {

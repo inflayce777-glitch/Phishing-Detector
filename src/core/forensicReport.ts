@@ -111,16 +111,25 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
   // Format Brand Impersonation
   const impersonatedBrands = (data.brandResults || []).filter(b => b.isImpersonation && b.targetBrand);
   const brandsList = impersonatedBrands.length > 0
-    ? impersonatedBrands.map(b => `
-      <div style="background: #fffbeb; border-left: 4px solid #d97706; border-top: 1px solid #fde68a; border-right: 1px solid #fde68a; border-bottom: 1px solid #fde68a; padding: 10px 12px; margin-bottom: 8px; border-radius: 5px; break-inside: avoid; page-break-inside: avoid;">
-        <div style="color: #92400e; font-size: 11px; font-weight: 800;">
-          Імітація бренду: ${b.targetBrand?.name || b.candidateDomain} (Схожість: ${((b.similarityScore || 0.85) * 100).toFixed(0)}%)
+    ? impersonatedBrands.map(b => {
+      const techniqueLabel = 
+        b.technique === 'Visual Homoglyph' ? 'Оптичний гомогліф (ASCII Homoglyph)' :
+        b.technique === 'Keyboard Proximity' ? 'Клавіатурний промах (QWERTY Proximity)' :
+        b.technique === 'Combosquatting' ? 'Комбосквотинг' :
+        b.technique === 'IDN Homoglyph' ? 'IDN Punycode гомогліф' :
+        (b.technique || 'тайпосквотинг');
+
+      return `
+        <div style="background: #fffbeb; border-left: 4px solid #d97706; border-top: 1px solid #fde68a; border-right: 1px solid #fde68a; border-bottom: 1px solid #fde68a; padding: 10px 12px; margin-bottom: 8px; border-radius: 5px; break-inside: avoid; page-break-inside: avoid;">
+          <div style="color: #92400e; font-size: 11px; font-weight: 800;">
+            Імітація бренду: ${b.targetBrand?.name || b.candidateDomain} (Схожість: ${((b.similarityScore || 0.85) * 100).toFixed(0)}%)
+          </div>
+          <div style="color: #1e293b; font-size: 11px; margin-top: 4px; line-height: 1.45;">
+            <strong>Домен:</strong> <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 700; color: #0f172a;">${b.candidateDomain || '—'}</span> | <strong>Метод:</strong> ${techniqueLabel}
+          </div>
         </div>
-        <div style="color: #1e293b; font-size: 11px; margin-top: 4px; line-height: 1.45;">
-          <strong>Домен:</strong> <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 700; color: #0f172a;">${b.candidateDomain || '—'}</span> | <strong>Метод:</strong> ${b.technique || 'комбосквотинг / тайпосквотинг'}
-        </div>
-      </div>
-    `).join('')
+      `;
+    }).join('')
     : '<div style="color: #475569; font-size: 11px; padding: 6px 0;">Ознак підміни відомих фінансових чи поштових брендів не зафіксовано.</div>';
 
   // Format Email Auth

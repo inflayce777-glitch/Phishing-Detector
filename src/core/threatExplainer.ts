@@ -154,8 +154,29 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
   if (impersonatedBrands.length > 0) {
     const brands = Array.from(new Set(impersonatedBrands.map(b => b.targetBrand?.name || b.candidateDomain))).join(', ');
     const maxSquatScore = Math.max(...impersonatedBrands.map(b => b.similarityScore || 0.85));
+    const hasVisualHomoglyph = impersonatedBrands.some(b => b.technique === 'Visual Homoglyph');
+    const hasKeyboardProximity = impersonatedBrands.some(b => b.technique === 'Keyboard Proximity');
+
+    const driverTitle = hasVisualHomoglyph
+      ? `Оптична імітація бренду (ASCII Homoglyph: ${brands})`
+      : hasKeyboardProximity
+      ? `Клавіатурний тайпосквотинг (QWERTY Proximity: ${brands})`
+      : `Тайпосквотинг / комбосквотинг бренду (${brands})`;
+
+    const findingTitle = hasVisualHomoglyph
+      ? `Оптичний гомогліф: візуальна підміна бренду (${brands})`
+      : hasKeyboardProximity
+      ? `Клавіатурний тайпосквотинг: промах по клавішах (${brands})`
+      : `Спроба підміни бренду (${brands})`;
+
+    const findingDetail = hasVisualHomoglyph
+      ? `Виявлено використання оптичної схожості символів (наприклад, "rn" замість "m" або "cl" замість "d"). В адресному рядку браузера такий домен візуально майже неможливо відрізнити від офіційного ресурсу ${brands}.`
+      : hasKeyboardProximity
+      ? `Домен експлуатує випадковий друкарський промах пальця по сусідніх клавішах QWERTY-розкладки (наприклад, "b" замість "v"). Зловмисники перехоплюють трафік користувачів, які помилилися при ручному вводі імені бренду ${brands}.`
+      : `Виявлено експлуатацію імені бренду ${brands}. Фальшивий домен використовує техніку комбосквотингу для введення користувача в оману.`;
+
     drivers.push({
-      title: `Тайпосквотинг / комбосквотинг бренду (${brands})`,
+      title: driverTitle,
       score: Math.round(maxSquatScore * 100),
       description: `Зловмисники експлуатують довіру до бренду ${brands} на сторонньому неофіційному домені.`,
       severity: 'critical'
@@ -164,8 +185,8 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       id: 'brand-impersonation',
       category: 'Імітація бренду',
       severity: 'critical',
-      title: `Спроба підміни бренду (${brands})`,
-      detail: `Виявлено експлуатацію імені бренду ${brands}. Фальшивий домен використовує техніку комбосквотингу для введення користувача в оману.`
+      title: findingTitle,
+      detail: findingDetail
     });
     recommendations.push(`Повідомити службу безпеки про фішингову імітацію бренду ${brands}.`);
   }
