@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700 px-3 py-1 bg-zinc-900/40 transition-all rounded-sm font-mono"
           >
-            Інбокс
+            Скринька
           </button>
         </div>
       </Header>

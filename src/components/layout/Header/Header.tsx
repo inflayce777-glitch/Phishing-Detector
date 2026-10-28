@@ -15,7 +15,7 @@ export const Header = ({ children }: HeaderProps) => {
 
   const navItems = [
     { label: 'Сканер', href: '/', icon: Shield },
-    { label: 'Інбокс', href: '/dashboard', icon: Inbox },
+    { label: 'Скринька', href: '/dashboard', icon: Inbox },
     { label: 'Статистика', href: '/analytics', icon: BarChart3 },
   ];
 
@@ -42,7 +42,7 @@ export const Header = ({ children }: HeaderProps) => {
               />
             </svg>
           </div>
-          <div className={styles.title}>Семантичний аналіз загроз</div>
+          <div className={styles.title}>Cyber Threat Forensic Analyzer 2.0</div>
         </Link>
       </div>
 

@@ -145,7 +145,7 @@ export const StatusRow = ({
             className="flex items-center gap-2.5 px-4 py-2 text-cyan-400 hover:bg-zinc-900/80 transition-colors"
           >
             <History className="w-4 h-4 shrink-0" />
-            <span>Історія інбоксу</span>
+            <span>Сховище скриньки</span>
           </a>
           <div className="h-px bg-zinc-800 my-1"></div>
           <button 

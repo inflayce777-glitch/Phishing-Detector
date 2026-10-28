@@ -309,7 +309,7 @@ function ForensicDashboardContent() {
               onClick={() => router.push('/dashboard')}
               className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/50 hover:border-cyan-400 px-3 py-1 bg-cyan-950/20 transition-all rounded-sm font-mono"
             >
-              <ArrowLeft className="w-3 h-3" /> До інбоксу
+              <ArrowLeft className="w-3 h-3" /> До скриньки
             </button>
           )}
         </Header>

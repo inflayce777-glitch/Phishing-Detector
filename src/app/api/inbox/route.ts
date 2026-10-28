@@ -157,6 +157,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ 
       success: true, 
       emails,
+      systemEmail: process.env.SMTP_USER || process.env.NEXT_PUBLIC_SYSTEM_EMAIL || 'inflayce777@gmail.com',
       pagination: {
         total,
         pages: Math.ceil(total / limit) || 1,
