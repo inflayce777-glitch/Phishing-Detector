@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Line, Text, Grid, useGLTF, Environment, Float } from '@react-three/drei';
+import { OrbitControls, Line, Text, Grid, useGLTF, Environment } from '@react-three/drei';
 import { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import * as THREE from 'three';
 
@@ -14,35 +14,48 @@ interface NodeData {
   explanation?: string;
 }
 
+// Shared geometry to avoid GPU reallocation stutters
+const sharedParticleGeo = new THREE.SphereGeometry(0.07, 8, 8);
+const sharedHitGeo = new THREE.SphereGeometry(1.0, 16, 16);
+
 function CameraRig({ selectedPos }: { selectedPos: THREE.Vector3 | null }) {
   const { camera, controls } = useThree();
-  const vec = new THREE.Vector3();
-  const spawnTime = useRef(0);
-  
-  useFrame((state) => {
-    if (spawnTime.current === 0) {
-      spawnTime.current = state.clock.elapsedTime;
-      camera.position.set(0, 10, 12);
-    }
-    const elapsed = state.clock.elapsedTime - spawnTime.current;
-    
-    if (elapsed < 1.5 && !selectedPos) {
-      camera.position.lerp(new THREE.Vector3(0, 5.5, 11), 0.04);
-    } else if (selectedPos && controls) {
-      const ctrl = controls as any;
-      ctrl.target.lerp(selectedPos, 0.06);
-      
-      vec.copy(selectedPos).add(new THREE.Vector3(2.2, 1.8, 3.8));
-      camera.position.lerp(vec, 0.06);
-    } else if (!selectedPos && controls) {
-      const ctrl = controls as any;
-      ctrl.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
+  const isTransitioning = useRef(true);
+
+  useEffect(() => {
+    // When selectedPos changes, trigger smooth camera lerp
+    isTransitioning.current = true;
+  }, [selectedPos]);
+
+  useFrame(() => {
+    if (!controls) return;
+    const ctrl = controls as any;
+
+    if (isTransitioning.current) {
+      const targetCenter = selectedPos || new THREE.Vector3(0, 0, 0);
+      const targetCam = selectedPos 
+        ? new THREE.Vector3(selectedPos.x + 2.2, selectedPos.y + 1.8, selectedPos.z + 3.8)
+        : new THREE.Vector3(0, 5.5, 9);
+
+      ctrl.target.lerp(targetCenter, 0.08);
+      camera.position.lerp(targetCam, 0.08);
+
+      // Once within close range, release control back to user's mouse!
+      if (
+        ctrl.target.distanceTo(targetCenter) < 0.04 && 
+        camera.position.distanceTo(targetCam) < 0.06
+      ) {
+        ctrl.target.copy(targetCenter);
+        camera.position.copy(targetCam);
+        isTransitioning.current = false;
+      }
     }
   });
+
   return null;
 }
 
-function ModelNode({ type, trigger, color, selected, hovered }: { type: string, trigger?: string, color: string, selected: boolean, hovered: boolean }) {
+function ModelNode({ type, trigger, selected, hovered }: { type: string, trigger?: string, selected: boolean, hovered: boolean }) {
   let modelPath = '/models/data_core.glb';
   
   if (type === 'shield' || type === 'safe_shield') {
@@ -60,24 +73,33 @@ function ModelNode({ type, trigger, color, selected, hovered }: { type: string, 
   }
 
   const { scene } = useGLTF(modelPath);
-  const clone = useMemo(() => scene.clone(), [scene, modelPath]);
-
-  useMemo(() => {
-    clone.traverse((child) => {
+  
+  // Clone scene and materials once to prevent memory leaks and garbage collection stutters
+  const clone = useMemo(() => {
+    const clonedScene = scene.clone();
+    clonedScene.traverse((child) => {
       child.raycast = () => null;
-
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
           mesh.material = (mesh.material as THREE.Material).clone();
           const mat = mesh.material as THREE.MeshStandardMaterial;
-          
-          if (mat.emissive && (mat.emissive.r > 0 || mat.emissive.g > 0 || mat.emissive.b > 0)) {
-             mat.emissiveIntensity = selected || hovered ? 9 : 4.5;
-          }
-          
           mat.roughness = 0.2;
           mat.metalness = 0.85;
+        }
+      }
+    });
+    return clonedScene;
+  }, [scene]);
+
+  // Update emissive intensity dynamically without re-cloning materials
+  useEffect(() => {
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (mat && mat.emissive) {
+          mat.emissiveIntensity = selected || hovered ? 8 : 4;
         }
       }
     });
@@ -126,14 +148,14 @@ function ThreatNode({
         modelRef.current.rotation.y = state.clock.elapsedTime * 0.6 + node.position[0] + (1 - t) * 15;
       }
     } else {
-      // Idle Animation
+      // Smooth idle rotation
       if (groupRef.current && groupRef.current.scale.x !== 1) {
         groupRef.current.position.set(...node.position);
         groupRef.current.scale.setScalar(1);
       }
       if (modelRef.current && !selected) {
-        modelRef.current.rotation.y = state.clock.elapsedTime * 0.6 + node.position[0];
-        modelRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.6 + node.position[2]) * 0.08;
+        modelRef.current.rotation.y = state.clock.elapsedTime * 0.5 + node.position[0];
+        modelRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + node.position[2]) * 0.08;
       }
     }
   });
@@ -152,12 +174,11 @@ function ThreatNode({
       onPointerLeave={(e) => { setHovered(false); document.body.style.cursor = 'auto'; }}
     >
       <group ref={modelRef}>
-        <ModelNode type={nodeType} trigger={node.trigger} color={node.color} selected={selected} hovered={hovered} />
+        <ModelNode type={nodeType} trigger={node.trigger} selected={selected} hovered={hovered} />
       </group>
       
-      {/* Invisible sphere for reliable raycasting hit area */}
-      <mesh scale={selected || hovered ? 1.4 : 1.1}>
-        <sphereGeometry args={[1.0, 16, 16]} />
+      {/* Invisible sphere for reliable raycast hit-testing */}
+      <mesh geometry={sharedHitGeo} scale={selected || hovered ? 1.35 : 1.1}>
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
@@ -181,7 +202,7 @@ function ThreatNode({
 function DataParticle({ start, end, color, speedMul = 1 }: { start: [number, number, number], end: [number, number, number], color: string, speedMul?: number }) {
   const ref = useRef<any>(null);
   const offset = useRef(Math.random()); 
-  const speed = useRef((0.45 + Math.random() * 0.5) * speedMul);
+  const speed = useRef((0.45 + Math.random() * 0.4) * speedMul);
 
   useFrame((state, delta) => {
     if (ref.current) {
@@ -194,8 +215,7 @@ function DataParticle({ start, end, color, speedMul = 1 }: { start: [number, num
   });
 
   return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[0.07, 8, 8]} />
+    <mesh ref={ref} geometry={sharedParticleGeo}>
       <meshBasicMaterial color={color} toneMapped={false} />
     </mesh>
   );
@@ -238,7 +258,6 @@ function ThreatEdge({
         lineWidth={selected ? 4 : 2}
         transparent
       />
-      {/* Animated data pulses moving along edge */}
       <DataParticle start={start} end={end} color={color} speedMul={1.1} />
       <DataParticle start={start} end={end} color="#ffffff" speedMul={0.9} />
     </group>
