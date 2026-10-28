@@ -366,17 +366,6 @@ function ForensicDashboardContent() {
               )}
             </button>
           </div>
-
-          {isComplete && (
-            <button
-              onClick={exportForensicReport}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all border border-cyan-500/40 hover:border-cyan-300 bg-cyan-950/40 text-cyan-300 hover:text-white cursor-pointer"
-              title="Експорт офіційного криміналістичного PDF-звіту"
-            >
-              <FileDown className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Експорт звіту (PDF)</span>
-            </button>
-          )}
         </div>
 
         {/* TAB 1: Вхідні дані та 3D-граф */}
@@ -468,21 +457,13 @@ function ForensicDashboardContent() {
             className="flex flex-col gap-4 w-full min-w-0"
           >
             {/* Quick switch button back to 3D Graph */}
-            <div className="flex items-center justify-between px-1">
+            <div className="flex items-center justify-start px-1">
               <button
                 onClick={() => setDashboardTab('input_graph')}
                 className="flex items-center gap-1.5 text-xs font-mono text-zinc-400 hover:text-cyan-300 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Повернутися до вхідних даних та 3D-графу</span>
-              </button>
-
-              <button
-                onClick={exportForensicReport}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border border-cyan-500/40 hover:border-cyan-300 bg-cyan-950/30 text-cyan-300 hover:text-white transition-all cursor-pointer"
-              >
-                <FileDown className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Експорт звіту (PDF)</span>
               </button>
             </div>
 
@@ -561,16 +542,6 @@ function ForensicDashboardContent() {
                   {vectors.length} {vectors.length === 1 ? 'тригер' : 'тригерів'}
                 </span>
               }
-              headerRight={
-                <button
-                  onClick={exportForensicReport}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300 cursor-pointer"
-                  title="Завантажити структурований PDF звіт криміналістичного аналізу"
-                >
-                  <FileDown className="w-3.5 h-3.5" />
-                  <span>Експорт звіту (PDF)</span>
-                </button>
-              }
             >
               <div className="space-y-3.5">
                 {/* Triggers list */}
@@ -622,15 +593,33 @@ function ForensicDashboardContent() {
                   </div>
                 )}
 
-                {/* Dynamic XAI Narrative from ThreatExplainer Engine */}
-                <div className="text-[11px] text-zinc-300 border-t border-zinc-800/80 pt-2.5 font-sans leading-relaxed">
-                  <div className="flex items-center gap-1.5 text-cyan-400 font-mono font-semibold mb-1">
+                {/* Structured XAI Findings from ThreatExplainer Engine */}
+                <div className="border-t border-zinc-800/80 pt-3 flex flex-col gap-2.5">
+                  <div className="flex items-center gap-1.5 text-cyan-400 font-mono font-semibold text-xs">
                     <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Пояснювальний ШІ (XAI) — Семантична експертиза:</span>
+                    <span>Пояснювальний ШІ (XAI) — Деталізація виявлених факторів загрози:</span>
                   </div>
-                  <p className="m-0 text-zinc-300 font-sans leading-relaxed">
-                    {threatReport.xaiNarrative}
-                  </p>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    {threatReport.findings.map((f) => (
+                      <div 
+                        key={f.id}
+                        className="flex flex-col sm:flex-row sm:items-start gap-2 p-2.5 rounded-lg bg-zinc-950/70 border border-zinc-800/80 text-xs text-zinc-300 font-sans leading-relaxed"
+                      >
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold shrink-0 uppercase tracking-wider self-start ${
+                          f.severity === 'critical' ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40' :
+                          f.severity === 'warning' ? 'bg-amber-950/70 text-amber-300 border border-amber-500/40' :
+                          'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30'
+                        }`}>
+                          {f.category}
+                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <strong className="text-zinc-100 font-medium">{f.title}</strong>
+                          <span className="text-zinc-400 text-[11px] leading-relaxed">{f.detail}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CollapsibleSection>

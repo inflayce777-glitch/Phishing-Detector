@@ -73,7 +73,7 @@ export const StatusRow = ({
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <Cpu className="w-3.5 h-3.5" />
-                  <span>ML: {mlHealth?.gpu_name ? 'RTX 3060 CUDA' : 'Online'}</span>
+                  <span>ШІ-модуль: Онлайн</span>
                 </button>
               </div>
             )}
@@ -81,18 +81,18 @@ export const StatusRow = ({
             <div className="w-72 max-w-[calc(100vw-24px)] bg-zinc-950/98 backdrop-blur-md border border-emerald-500/30 rounded-lg shadow-2xl p-3 font-mono text-[11px] text-zinc-300">
               <div className="flex items-center gap-1.5 text-emerald-400 font-bold mb-2 border-b border-emerald-500/20 pb-1.5">
                 <Activity className="w-3.5 h-3.5" />
-                <span>Нейромережеве ядро</span>
+                <span>Аналітичне ядро</span>
               </div>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-start gap-2">
-                  <span className="text-zinc-500 shrink-0">Пристрій:</span>
-                  <span className="text-zinc-200 text-right font-semibold break-words">
-                    {mlHealth?.gpu_name || mlHealth?.device || 'CUDA'}
+                  <span className="text-zinc-500 shrink-0">Режим аналізу:</span>
+                  <span className="text-zinc-200 text-right font-semibold">
+                    Апаратне прискорення
                   </span>
                 </div>
                 <div className="flex justify-between items-start gap-2 pt-1 border-t border-zinc-800/80 text-[10px] text-zinc-400">
-                  <span>Статус середовища:</span>
-                  <span className="text-emerald-400">Активно (PyTorch + CUDA)</span>
+                  <span>Стан системи:</span>
+                  <span className="text-emerald-400">Готова до перевірки</span>
                 </div>
               </div>
             </div>
@@ -103,7 +103,7 @@ export const StatusRow = ({
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-mono tracking-wider bg-zinc-900 border border-zinc-700/50 text-zinc-400">
             <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
             <Cpu className="w-3.5 h-3.5" />
-            <span>ML: Offline</span>
+            <span>ШІ-модуль: Очікування</span>
           </div>
         )}
       </div>

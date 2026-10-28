@@ -409,7 +409,7 @@ export const phishingScannerMachine = setup({
             oracleScore: 0,
             extractedIndicators: { urls: [], ips: [] },
             isTrusted: false,
-            modelProgress: () => 'ПІДГОТОВКА ТЕКСТУ...',
+            modelProgress: () => 'Підготовка тексту...',
           }),
         },
       },
@@ -422,7 +422,7 @@ export const phishingScannerMachine = setup({
           target: 'inferencing',
           actions: assign({
             tokens: ({ event }) => event.output.tokens,
-            modelProgress: () => 'АНАЛІЗ PYTHON-БЕКЕНДОМ...',
+            modelProgress: () => 'Семантичний аналіз тексту...',
           }),
         },
         onError: 'idle',
@@ -440,7 +440,7 @@ export const phishingScannerMachine = setup({
         onDone: {
           target: 'rendering_3d',
           actions: assign({
-            modelProgress: () => 'РЕЗУЛЬТАТ ОТРИМАНО',
+            modelProgress: () => 'Синтез результатів аналізу...',
             oracleVerdict: ({ event }) => event.output.oracle[0].label,
             oracleScore: ({ event }) => event.output.oracle[0].score,
             obfuscation: ({ event }) => event.output.obfuscation,
@@ -490,7 +490,7 @@ export const phishingScannerMachine = setup({
             oracleScore: 0,
             extractedIndicators: { urls: [], ips: [] },
             isTrusted: false,
-            modelProgress: () => 'ПІДГОТОВКА ТЕКСТУ...',
+            modelProgress: () => 'Підготовка тексту...',
           }),
         },
       },

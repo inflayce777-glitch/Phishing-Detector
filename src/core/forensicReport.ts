@@ -86,10 +86,10 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
     ? data.brandResults.map(b => `
       <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b; padding: 8px 12px; margin-bottom: 8px; border-radius: 4px;">
         <div style="color: #f59e0b; font-size: 11px; font-weight: 600;">
-          Імітація бренду: ${b.brandName} (Ймовірність: ${(b.score * 100).toFixed(0)}%)
+          Імітація бренду: ${b.targetBrand?.name || b.candidateDomain} (Схожість: ${((b.similarityScore || 0.85) * 100).toFixed(0)}%)
         </div>
         <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">
-          Цільовий домен: ${b.detectedDomain || '—'} | Метод: ${b.technique || 'комбосквотинг / тайпосквотинг'}
+          Домен: ${b.candidateDomain || '—'} | Метод: ${b.technique || 'комбосквотинг / тайпосквотинг'}
         </div>
       </div>
     `).join('')
@@ -105,6 +105,21 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
       </div>
     `
     : '<div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">Службові поштові заголовки відсутні (аналіз тексту або месенджера).</div>';
+
+  // Format XAI Findings as structured items
+  const findingsHtml = (data.threatReport?.findings || []).length > 0
+    ? (data.threatReport?.findings || []).map(f => `
+      <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
+          <span style="background: rgba(108, 229, 220, 0.15); color: #6ce5dc; font-family: monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; text-transform: uppercase;">
+            ${f.category}
+          </span>
+          <strong style="color: #ffffff; font-size: 11px;">${f.title}</strong>
+        </div>
+        <div style="color: #94a3b8; font-size: 11px; line-height: 1.5;">${f.detail}</div>
+      </div>
+    `).join('')
+    : `<div style="color: #cbd5e1;">${data.threatReport?.xaiNarrative || 'Контент проаналізовано на наявність маркерів соціальної інженерії.'}</div>`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -263,13 +278,11 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
           border-bottom: 1px solid #222e35;
         }
         .xai-box {
-          background: rgba(108, 229, 220, 0.05);
-          border: 1px solid rgba(108, 229, 220, 0.3);
+          background: rgba(108, 229, 220, 0.04);
+          border: 1px solid rgba(108, 229, 220, 0.25);
           border-radius: 6px;
           padding: 12px 16px;
           font-size: 11px;
-          color: #cbd5e1;
-          line-height: 1.6;
         }
         .checklist {
           list-style: none;
@@ -396,13 +409,12 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
           </div>
         </div>
 
-        <!-- Dynamic XAI Explanation -->
+        <!-- Dynamic XAI Explanation as Structured Findings -->
         <div class="section-title">
-          <span>Пояснювальний ШІ (XAI) — Семантична експертиза</span>
+          <span>Пояснювальний ШІ (XAI) — Результати розвідки за векторами</span>
         </div>
         <div class="xai-box">
-          <strong style="color: #6ce5dc;">Аналітичний висновок ядра: </strong>
-          ${data.threatReport?.xaiNarrative || 'Контент проаналізовано на наявність маркерів соціальної інженерії та компрометації каналу передачі.'}
+          ${findingsHtml}
         </div>
 
         <!-- Triggers Table -->
@@ -460,7 +472,6 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
       </div>
 
       <script>
-        // Trigger print after rendering
         window.addEventListener('load', function() {
           setTimeout(function() {
             window.print();
@@ -477,7 +488,6 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   } else {
-    // If popup blocked, create downloadable HTML/PDF file
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -17,11 +17,20 @@ export interface ThreatExplainerParams {
   hasMlUrlThreat?: boolean;
 }
 
+export interface XaiFinding {
+  id: string;
+  category: string;
+  severity: 'critical' | 'warning' | 'info' | 'safe';
+  title: string;
+  detail: string;
+}
+
 export interface ThreatAnalysisReport {
   verdictLabel: string;
   severityClass: 'critical' | 'warning' | 'safe' | 'spam';
   executiveSummary: string;
   xaiNarrative: string;
+  findings: XaiFinding[];
   primaryDrivers: Array<{
     title: string;
     score: number;
@@ -35,7 +44,7 @@ export interface ThreatAnalysisReport {
 /**
  * Intelligent Analytical Engine that synthesizes threat signals
  * (NLP semantics, URL reputation, email authentication, typosquatting, obfuscation)
- * into a coherent, high-precision forensic explanation in Ukrainian.
+ * into a structured, highly readable list of forensic findings and explanations.
  */
 export function generateThreatExplanation(params: ThreatExplainerParams): ThreatAnalysisReport {
   const {
@@ -53,7 +62,7 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
   } = params;
 
   const drivers: ThreatAnalysisReport['primaryDrivers'] = [];
-  const narrativeParts: string[] = [];
+  const findings: XaiFinding[] = [];
   const recommendations: string[] = [];
 
   // 1. Analyze Whitelisted / Trusted Infrastructure
@@ -62,7 +71,23 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       verdictLabel: 'Верифіковано (Безпечно)',
       severityClass: 'safe',
       executiveSummary: 'Повідомлення надійшло з верифікованої інфраструктури довіреного домену та не містить маніпулятивних маркерів.',
-      xaiNarrative: 'Повідомлення успішно пройшло повний криміналістичний аудит. Домен відправника належить до захищеного переліку довірених провайдерів (BIMI/DMARC), репутаційні бази Safe Browsing не зафіксували компрометації посилань, а лінгвістичний аналіз тексту підтверджує відсутність прихованого шкідливого наміру.',
+      xaiNarrative: 'Повідомлення успішно пройшло криміналістичний аудит. Домен відправника належить до захищеного переліку довірених провайдерів (BIMI/DMARC), посилання не зафіксовані в базах загроз, а текст не містить маніпулятивних маркерів.',
+      findings: [
+        {
+          id: 'trusted-infrastructure',
+          category: 'Довірена інфраструктура',
+          severity: 'safe',
+          title: 'Підтверджений домен (BIMI / Whitelist)',
+          detail: 'Домен відправника належить до офіційного списку захищених доменів з коректними цифровими підписами.'
+        },
+        {
+          id: 'clean-text',
+          category: 'Семантичний аудит',
+          severity: 'safe',
+          title: 'Відсутність маніпуляцій',
+          detail: 'Текст не містить прихованих гомогліфів, обфускації, штучної терміновості чи закликів до компрометації даних.'
+        }
+      ],
       primaryDrivers: [
         {
           title: 'Довірений домен (BIMI / Whitelist)',
@@ -100,7 +125,13 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       description: 'Посилання або DNS-домен заблоковано базами Google Safe Browsing, URLhaus або виявлено NXDOMAIN.',
       severity: 'critical'
     });
-    narrativeParts.push('Виявлено пряме знешкодження посилань глобальними системами кіберзахисту (Google Safe Browsing / URLhaus). Виявлені домени використовуються для розповсюдження шкідливого ПЗ або збору банківських реквізитів.');
+    findings.push({
+      id: 'hard-blacklist',
+      category: 'Чорні списки (IoC)',
+      severity: 'critical',
+      title: 'Блокування глобальними системами безпеки',
+      detail: 'Посилання або домен заблоковано системами кіберзахисту (Google Safe Browsing / URLhaus) або веде на мертвий/підроблений DNS-домен (NXDOMAIN), типовий для фішингових форм.'
+    });
     recommendations.push('Негайно заблокувати цільовий URL на корпоративному брандмауері та DNS-шлюзі.');
   } else if (hasMlUrlThreat) {
     drivers.push({
@@ -109,7 +140,13 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       description: 'Структура посилання та ентропія домену мають високу кореляцію з фішинговими посадковими сторінками.',
       severity: 'warning'
     });
-    narrativeParts.push('ML-аналізатор структури URL виявив аномальну ентропію шляхів і субдоменів, характерну для цільових фішингових сайтів.');
+    findings.push({
+      id: 'ml-url-threat',
+      category: 'Аналіз URL',
+      severity: 'warning',
+      title: 'Підозріла структура посилання',
+      detail: 'Нейромережевий аналізатор структури посилань виявив аномальну ентропію субдоменів та параметрів, характерну для фішингу.'
+    });
   }
 
   // 4. Evaluate Brand Typosquatting / Combosquatting
@@ -119,10 +156,16 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
     drivers.push({
       title: `Тайпосквотинг / комбосквотинг бренду (${brands})`,
       score: Math.round(maxSquatScore * 100),
-      description: `Зловмисники експлуатують довіру до бренду ${brands} на сторонньому незареєстрованому домені.`,
+      description: `Зловмисники експлуатують довіру до бренду ${brands} на сторонньому неофіційному домені.`,
       severity: 'critical'
     });
-    narrativeParts.push(`Зафіксовано спробу соціальної інженерії через імітацію бренду ${brands}. Фальшивий домен використовує техніку комбосквотингу для обману візуального сприйняття користувача.`);
+    findings.push({
+      id: 'brand-impersonation',
+      category: 'Імітація бренду',
+      severity: 'critical',
+      title: `Спроба підміни бренду (${brands})`,
+      detail: `Виявлено експлуатацію імені бренду ${brands}. Фальшивий домен використовує техніку комбосквотингу для введення користувача в оману.`
+    });
     recommendations.push(`Повідомити службу безпеки про фішингову імітацію бренду ${brands}.`);
   }
 
@@ -135,7 +178,13 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
         description: 'Провал автентифікації SPF або відсутність узгодженості DMARC. Адреса підроблена.',
         severity: 'critical'
       });
-      narrativeParts.push('Криміналістична перевірка поштових заголовків виявила фальсифікацію адреси відправника: відправний сервер не авторизований власником домену (SPF/DMARC fail).');
+      findings.push({
+        id: 'email-spoofing',
+        category: 'Автентичність',
+        severity: 'critical',
+        title: 'Підміна відправника (Email Spoofing)',
+        detail: 'Криміналістична перевірка заголовків виявила фальсифікацію адреси відправника: поштовий сервер маршрутизації не авторизований у DNS власника домену (SPF/DMARC fail).'
+      });
       recommendations.push('Налаштувати жорстку політику відхилення непідписаних листів DMARC: p=reject.');
     } else {
       drivers.push({
@@ -155,7 +204,13 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       description: 'Поєднання штучної паніки щодо блокування рахунків з вимогами негайної оплати чи верифікації.',
       severity: 'critical'
     });
-    narrativeParts.push('Семантичне ядро зафіксувало класичний тандем соціальної інженерії: штучне відчуття паніки через блокування або штрафи разом із вимогою миттєвих дій для уникнення санкцій.');
+    findings.push({
+      id: 'psych-coercion',
+      category: 'Психологічний тиск',
+      severity: 'critical',
+      title: 'Маніпуляція дефіцитом часу та фінансами',
+      detail: 'Семантичне ядро зафіксувало тандем соціальної інженерії: штучне створення паніки через блокування чи штрафи разом із вимогою миттєвих дій для уникнення санкцій.'
+    });
   } else if (urgencyVec) {
     drivers.push({
       title: 'Штучна терміновість (Urgency)',
@@ -163,7 +218,13 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       description: urgencyVec.explanation || 'Маніпуляція дефіцитом часу для блокування раціональної перевірки фактів.',
       severity: urgencyVec.score > 0.75 ? 'critical' : 'warning'
     });
-    narrativeParts.push('Виявлено високий рівень лексичної терміновості, покликаний примусити користувача діяти імпульсивно.');
+    findings.push({
+      id: 'urgency-trigger',
+      category: 'Маніпуляція часом',
+      severity: urgencyVec.score > 0.75 ? 'critical' : 'warning',
+      title: 'Штучна терміновість',
+      detail: 'Виявлено підвищену концентрацію маркерів терміновості (дефіцит часу), покликану спонукати користувача до імпульсивних дій.'
+    });
   }
 
   if (actionVec) {
@@ -173,7 +234,13 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       description: actionVec.explanation || 'Вимога переходу за посиланням або введення паролів/кодів доступу.',
       severity: actionVec.score > 0.7 ? 'critical' : 'warning'
     });
-    narrativeParts.push('У тексті виявлено директивні заклики до переходу за зовнішніми URL або підтвердження облікових записів.');
+    findings.push({
+      id: 'action-trigger',
+      category: 'Заклик до дії',
+      severity: actionVec.score > 0.7 ? 'critical' : 'warning',
+      title: 'Директивні заклики до переходу',
+      detail: 'У тексті виявлено явні вказівки перейти за зовнішніми посиланнями або підтвердити конфіденційні облікові записи.'
+    });
   }
 
   // 7. Evaluate Obfuscation
@@ -184,17 +251,34 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       description: `Приховані символи та заміна літер: ${obfuscation.flags.join(', ')}`,
       severity: 'critical'
     });
-    narrativeParts.push('Виявлено навмисну обфускацію тексту (використання кирилично-латинських гомогліфів або невидимих юнікод-розділювачів) з метою обходу автоматичних спам-фільтрів.');
+    findings.push({
+      id: 'text-obfuscation',
+      category: 'Обфускація тексту',
+      severity: 'critical',
+      title: 'Навмисна маскування літер (гомогліфи)',
+      detail: `Виявлено спробу обходу фільтрів безпеки за допомогою підміни символів (гомогліфи кирилиця/латиниця або невидимі юнікод-розділювачі): ${obfuscation.flags.join(', ')}.`
+    });
     recommendations.push('Не копіювати текст і не запускати скрипти із вкладень листа.');
   }
 
   // 8. Spam campaign assessment
   if (isSpam && threatLevel <= 70) {
+    const spamFindings: XaiFinding[] = [
+      {
+        id: 'spam-marker',
+        category: 'Масова розсилка',
+        severity: 'warning',
+        title: 'Ознаки маркетингового спаму',
+        detail: 'Повідомлення ідентифіковано як рекламну або спам-кампанію. Прямого шкідливого навантаження немає, але контент є нав’язливим.'
+      }
+    ];
+
     return {
       verdictLabel: 'Масова розсилка (Спам)',
       severityClass: 'spam',
       executiveSummary: 'Повідомлення ідентифіковано як рекламну або спам-кампанію без деструктивного шкідливого навантаження.',
       xaiNarrative: 'Аналізатор класифікував повідомлення як небажану кореспонденцію або маркетингову розсилку. Не виявлено ознак спуфінгу чи шкідливого програмного забезпечення, проте структура тексту містить типові спам-маркери.',
+      findings: spamFindings,
       primaryDrivers: drivers.length > 0 ? drivers : [
         {
           title: 'Спам-патерни контенту',
@@ -229,13 +313,32 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
     recommendations.push('Повідомлення не містить активних загроз. Дотримуйтесь стандартних правил кібергігієни.');
   }
 
-  if (narrativeParts.length === 0) {
+  // Default finding if list is empty
+  if (findings.length === 0) {
     if (threatLevel > 70) {
-      narrativeParts.push('Модель виявила високу концентрацію маніпулятивних маркерів, характерних для цільового фішингу.');
+      findings.push({
+        id: 'generic-critical',
+        category: 'Цільовий фішинг',
+        severity: 'critical',
+        title: 'Комплекс маніпулятивних маркерів',
+        detail: 'Модель виявила високу концентрацію маркерів соціальної інженерії, характерних для цільового фішингу.'
+      });
     } else if (threatLevel > 40) {
-      narrativeParts.push('Виявлено сукупність помірних факторів ризику, що вимагають додаткової уваги перед взаємодією.');
+      findings.push({
+        id: 'generic-warning',
+        category: 'Помірний ризик',
+        severity: 'warning',
+        title: 'Потенційно небажаний вміст',
+        detail: 'Виявлено сукупність помірних факторів ризику, що вимагають додаткової обачності перед взаємодією.'
+      });
     } else {
-      narrativeParts.push('Текст та посилання успішно пройшли перевірку, ознак цільових загроз не виявлено.');
+      findings.push({
+        id: 'generic-safe',
+        category: 'Безпечний вміст',
+        severity: 'safe',
+        title: 'Загроз не виявлено',
+        detail: 'Текст та посилання успішно пройшли перевірку, ознак цільових атак чи маніпуляцій не знайдено.'
+      });
     }
   }
 
@@ -251,11 +354,14 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       ? 'Компрометація поштової автентичності: виявлено підробку адреси відправника.'
       : 'Технічна інфраструктура не містить зафіксованих блокувань у глобальних реєстрах.');
 
+  const narrativeText = findings.map(f => f.detail).join(' ');
+
   return {
     verdictLabel,
     severityClass,
     executiveSummary,
-    xaiNarrative: narrativeParts.join(' '),
+    xaiNarrative: narrativeText,
+    findings,
     primaryDrivers: drivers,
     infrastructureAssessment,
     recommendedActions: recommendations
