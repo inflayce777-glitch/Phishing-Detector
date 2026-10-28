@@ -13,13 +13,14 @@ import {
   Mail, MessageSquare, Camera, ChevronDown, Shield, LogOut, History, Key, 
   ShieldAlert, ShieldCheck, ArrowLeft, CheckCircle, AlertTriangle, XCircle, 
   Building, Calendar, Clock, Globe, Fingerprint, Lock, X, Info, Download,
-  ExternalLink, ChevronRight
+  ExternalLink, ChevronRight, ChevronsUpDown, Layers
 } from "lucide-react";
 import { Header } from '@/components/layout/Header';
 import { Container } from '@/components/layout/Container';
 import { InputPanel } from '@/components/features/Scanner/InputPanel';
 import { GraphPanel } from '@/components/features/Scanner/GraphPanel';
 import { VerdictPanel } from '@/components/features/Scanner/VerdictPanel';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { StatusRow } from '@/components/features/Scanner/StatusRow';
 import { SecurityModal } from '@/components/features/Scanner/SecurityModal';
 import { OcrUploadModal } from '@/components/features/Scanner/OcrUploadModal';
@@ -50,6 +51,23 @@ function ForensicDashboardContent() {
   const { data: session, update } = useSession();
   
   const [safeBrowsingMatches, setSafeBrowsingMatches] = useState<any[]>([]);
+  const [openSections, setOpenSections] = useState({
+    triggers: true,
+    links: false,
+    auth: false,
+  });
+
+  const toggleSection = (key: 'triggers' | 'links' | 'auth') => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const expandAllSections = () => {
+    setOpenSections({ triggers: true, links: true, auth: true });
+  };
+
+  const collapseAllSections = () => {
+    setOpenSections({ triggers: false, links: false, auth: false });
+  };
 
   useEffect(() => {
     if (state.value === 'complete_with_xai' && state.context.extractedIndicators) {
@@ -374,52 +392,52 @@ function ForensicDashboardContent() {
               }}
             />
 
-            <section className={isComplete ? "fx-grid" : "fx-grid-single"}>
-              <div className="w-full min-w-0">
-                <InputPanel
-                  appMode={appMode}
-                  setAppMode={setAppMode}
-                  emailInput={emailInput || state.context.senderEmail || ''}
-                  setEmailInput={setEmailInput}
-                  urlInput={urlInput}
-                  setUrlInput={setUrlInput}
-                  inputValue={inputValue}
-                  setInputValue={setInputValue}
-                  isScanning={isScanning}
-                  isOcrLoading={isOcrLoading}
-                  onCameraClick={() => setShowUploadModal(true)}
-                  onScanClick={isComplete && !isEditing ? () => setIsEditing(true) : handleScan}
-                  isEditing={isEditing}
-                  setIsEditing={setIsEditing}
-                  isComplete={isComplete}
-                  vectors={state.context.vectors}
-                  extractedUrls={state.context.extractedIndicators?.urls}
-                  extractedIps={state.context.extractedIndicators?.ips}
-                  safeBrowsingMatches={safeBrowsingMatches}
+            {/* 1. Вхідні дані (завжди на всю ширину) */}
+            <section className="w-full min-w-0">
+              <InputPanel
+                appMode={appMode}
+                setAppMode={setAppMode}
+                emailInput={emailInput || state.context.senderEmail || ''}
+                setEmailInput={setEmailInput}
+                urlInput={urlInput}
+                setUrlInput={setUrlInput}
+                inputValue={inputValue}
+                setInputValue={setInputValue}
+                isScanning={isScanning}
+                isOcrLoading={isOcrLoading}
+                onCameraClick={() => setShowUploadModal(true)}
+                onScanClick={isComplete && !isEditing ? () => setIsEditing(true) : handleScan}
+                isEditing={isEditing}
+                setIsEditing={setIsEditing}
+                isComplete={isComplete}
+                vectors={state.context.vectors}
+                extractedUrls={state.context.extractedIndicators?.urls}
+                extractedIps={state.context.extractedIndicators?.ips}
+                safeBrowsingMatches={safeBrowsingMatches}
+                activeNode={activeNode}
+                setActiveNode={setActiveNode}
+                hoveredVectorId={hoveredVectorId}
+                setHoveredVectorId={setHoveredVectorId}
+                isTrusted={state.context.isTrusted}
+              />
+            </section>
+
+            {/* 2. Граф ознак (3D) — розміщений ПІД вхідними даними, на всю ширину */}
+            {isComplete && (
+              <motion.section
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="mt-4 w-full min-w-0"
+              >
+                <GraphPanel
+                  vectors={vectors}
                   activeNode={activeNode}
                   setActiveNode={setActiveNode}
-                  hoveredVectorId={hoveredVectorId}
-                  setHoveredVectorId={setHoveredVectorId}
-                  isTrusted={state.context.isTrusted}
+                  threatLevel={threatLevel}
                 />
-              </div>
-
-              {isComplete && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.35, ease: 'easeOut' }}
-                  className="w-full min-w-0 h-full flex flex-col"
-                >
-                  <GraphPanel
-                    vectors={vectors}
-                    activeNode={activeNode}
-                    setActiveNode={setActiveNode}
-                    threatLevel={threatLevel}
-                  />
-                </motion.div>
-              )}
-            </section>
+              </motion.section>
+            )}
 
             {isComplete && (
               <motion.section 
@@ -429,7 +447,7 @@ function ForensicDashboardContent() {
                 variants={containerVariants}
                 style={{ overflow: 'visible' }}
               >
-                {/* 1. Головний підсумковий висновок системи (на всю ширину екрана) */}
+                {/* 3. Головний підсумковий висновок системи */}
                 <VerdictPanel 
                   threatLevel={threatLevel} 
                   isSpam={state.context.isSpam}
@@ -446,7 +464,7 @@ function ForensicDashboardContent() {
                   onExportReport={exportForensicReport}
                 />
 
-                {/* 2. Критичні системні сповіщення (на всю ширину, якщо активні) */}
+                {/* 4. Критичні системні попередження (якщо активні) */}
                 {state.context.isTrusted && safeBrowsingMatches.length === 0 && (
                   <Panel title="Надійний відправник (BIMI / DMARC)" className="border-emerald-500/50">
                     <div style={{ padding: '16px 18px', color: '#b3ffb3', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -469,140 +487,208 @@ function ForensicDashboardContent() {
                   </Panel>
                 )}
 
-                {safeBrowsingMatches.length > 0 && (
-                  <Panel 
-                    title={hasHardBlacklist ? "Глобальні чорні списки загроз (критично)" : "Репутаційний аналіз посилань та інфраструктури"} 
-                    style={{ border: hasHardBlacklist ? '1px solid var(--fx-red)' : '1px solid var(--fx-amber)' }}
-                  >
-                    <div style={{ padding: '16px 18px', color: '#ffb3b3', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {safeBrowsingMatches.map((match, idx) => {
-                        const threatTypes: Record<string, string> = {
-                          'MALWARE': 'Шкідливе ПЗ (загроза зараження вірусом)',
-                          'SOCIAL_ENGINEERING': 'Соціальна інженерія (фішинг, спроба викрасти паролі чи дані)',
-                          'UNWANTED_SOFTWARE': 'Небажане ПЗ (програми, що змінюють налаштування без вашого дозволу)',
-                          'POTENTIALLY_HARMFUL_APPLICATION': 'Потенційно небезпечний додаток'
-                        };
-                        const explanation = threatTypes[match.threatType] || match.threatType;
-                        const isHard = match.threatType.includes('URLhaus') || match.threatType.includes('Safe Browsing') || match.threatType.includes('NXDOMAIN');
-                        
-                        return (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                            <ShieldAlert className={`w-5 h-5 shrink-0 mt-0.5 ${isHard ? 'text-red-500' : 'text-amber-400'}`} />
-                            <div>
-                               <div style={{ marginBottom: '4px', color: '#ffffff' }}>
-                                 Посилання <strong>{match.threat?.url}</strong> {isHard ? 'блокується глобальними базами безпеки:' : 'має попередження аналізатора:'}
-                               </div>
-                               <div style={{ color: isHard ? 'var(--fx-red)' : '#f39c12', fontWeight: 'bold' }}>
-                                 Тип загрози: {explanation}
-                               </div>
-                               {match.details && (
-                                 <div style={{ color: 'var(--fx-muted)', fontSize: '11px', marginTop: '2px' }}>
-                                   {match.details}
-                                 </div>
-                               )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Panel>
-                )}
+                {/* 5. Панель керування додатковими секціями криміналістичної розвідки */}
+                <div className="flex items-center justify-between pt-2 pb-1 px-1">
+                  <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    <span className="font-semibold text-zinc-200">Поглиблена розвідка та аналітика:</span>
+                  </div>
 
-                {/* 3. Поглиблена криміналістична сітка (2 колонки на десктопі, 1 колонка на мобільних) */}
-                <div className={`grid grid-cols-1 ${hasForensicIntel ? 'lg:grid-cols-2' : ''} gap-4 items-start min-w-0`}>
-                  {/* Ліва колонка: Автентифікація та інфраструктура */}
-                  {hasForensicIntel && (
-                    <Panel title="Криміналістична розвідка: автентифікація та інфраструктура" className="min-w-0">
-                      <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px' }}>
-                        <EmailAuthCard emailAuth={state.context.emailAuth} />
-                        <DomainIntelCard brandResults={state.context.brandResults} rdapResults={state.context.rdapResults} />
-                      </div>
-                    </Panel>
-                  )}
-
-                  {/* Права колонка: Знайдені тригери та URL-інспектор */}
-                  <Panel 
-                    title="Знайдені тригери"
-                    className="min-w-0"
-                    headerRight={
-                      <button
-                        onClick={exportForensicReport}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300"
-                        title="Завантажити структурований JSON звіт криміналістичного аналізу"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Експорт звіту (JSON)</span>
-                      </button>
-                    }
-                  >
-                    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
-                      {/* Список тригерів */}
-                      {vectors.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {vectors.map((vec) => {
-                            const isActive = activeNode?.id === vec.id;
-                            const isHovered = hoveredVectorId === vec.id;
-
-                            return (
-                              <motion.span
-                                key={vec.id}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onMouseEnter={() => setHoveredVectorId(vec.id)}
-                                onMouseLeave={() => setHoveredVectorId(null)}
-                                onClick={() => setActiveNode(isActive ? null : vec)}
-                                style={{
-                                  border: `1px solid ${vec.color}${isActive || isHovered ? 'ff' : '40'}`,
-                                  background: `${vec.color}${isActive || isHovered ? '35' : '15'}`,
-                                  color: vec.color,
-                                  padding: '6px 10px',
-                                  fontSize: '10px',
-                                  fontFamily: 'var(--fx-mono)',
-                                  letterSpacing: '0.05em',
-                                  cursor: 'pointer',
-                                  borderRadius: '4px',
-                                  boxShadow: isActive || isHovered ? `0 0 10px ${vec.color}60` : 'none',
-                                  transition: 'all 0.15s ease-in-out',
-                                }}
-                              >
-                                {vec.trigger ? (vec.trigger.charAt(0).toUpperCase() + vec.trigger.slice(1)) : ''} ({(vec.score * 100).toFixed(1)}%)
-                              </motion.span>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {vectors.length === 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', width: '100%', padding: '4px' }}>
-                          <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Shield className="w-4 h-4 shrink-0" /> <span>Евристичний аналіз: маніпулятивних тригерів чи шкідливого контенту не знайдено</span>
-                          </div>
-                          <div style={{ color: 'var(--fx-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Shield className="w-4 h-4 shrink-0" /> <span>Обфускація: текст кристально чистий (без прихованих символів чи підміни літер)</span>
-                          </div>
-                          <div style={{ color: 'var(--fx-muted)', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-                            <span style={{ color: 'var(--fx-cyan)' }}>ML-аналітика:</span> Базовий рівень ризику ({threatLevel}%) 
-                            {safeBrowsingMatches.length > 0 
-                              ? ' встановлено на 100%, оскільки в тексті виявлено шкідливе посилання, занесене до глобальної бази загроз Google Safe Browsing!' 
-                              : (threatLevel === 0 
-                                  ? ' встановлено завдяки верифікації надійного відправника та відсутності загроз.' 
-                                  : ' встановлено нейромережею через відсутність перевірених заголовків відправника (анонімний текст), але оскільки жодних експлойтів чи маніпуляцій не виявлено, повідомлення безпечне для прочитання.')
-                            }
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* URL X-Ray Inspector & IP addresses */}
-                      <UrlInspector
-                        urls={state.context.extractedIndicators?.urls}
-                        ips={state.context.extractedIndicators?.ips}
-                        safeBrowsingMatches={safeBrowsingMatches}
-                        rdapResults={state.context.rdapResults}
-                        brandResults={state.context.brandResults}
-                      />
-                    </div>
-                  </Panel>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={expandAllSections}
+                      className="px-2.5 py-1 rounded text-[11px] font-mono text-cyan-400 hover:text-cyan-300 bg-cyan-950/20 hover:bg-cyan-950/40 border border-cyan-500/30 transition-all"
+                    >
+                      Розгорнути всі
+                    </button>
+                    <button
+                      onClick={collapseAllSections}
+                      className="px-2.5 py-1 rounded text-[11px] font-mono text-zinc-400 hover:text-zinc-200 bg-zinc-900/40 hover:bg-zinc-800 border border-zinc-800 transition-all"
+                    >
+                      Згорнути всі
+                    </button>
+                  </div>
                 </div>
+
+                {/* Секція 1: Семантичні тригери та пояснювальний ШІ (XAI) */}
+                <CollapsibleSection
+                  title="Знайдені семантичні тригери та XAI-аналітика"
+                  icon={<Fingerprint className="w-4 h-4 text-cyan-400" />}
+                  isOpen={openSections.triggers}
+                  onToggle={() => toggleSection('triggers')}
+                  badge={
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/50 text-cyan-300 border border-cyan-500/40">
+                      {vectors.length} {vectors.length === 1 ? 'тригер' : 'тригерів'}
+                    </span>
+                  }
+                  headerRight={
+                    <button
+                      onClick={exportForensicReport}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono transition-all border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/20 text-cyan-400 hover:text-cyan-300"
+                      title="Завантажити структурований JSON звіт криміналістичного аналізу"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Експорт звіту (JSON)</span>
+                    </button>
+                  }
+                >
+                  <div className="space-y-3.5">
+                    {/* Список тригерів */}
+                    {vectors.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {vectors.map((vec) => {
+                          const isActive = activeNode?.id === vec.id;
+                          const isHovered = hoveredVectorId === vec.id;
+
+                          return (
+                            <motion.span
+                              key={vec.id}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onMouseEnter={() => setHoveredVectorId(vec.id)}
+                              onMouseLeave={() => setHoveredVectorId(null)}
+                              onClick={() => setActiveNode(isActive ? null : vec)}
+                              style={{
+                                border: `1px solid ${vec.color}${isActive || isHovered ? 'ff' : '40'}`,
+                                background: `${vec.color}${isActive || isHovered ? '35' : '15'}`,
+                                color: vec.color,
+                                padding: '6px 10px',
+                                fontSize: '10px',
+                                fontFamily: 'var(--fx-mono)',
+                                letterSpacing: '0.05em',
+                                cursor: 'pointer',
+                                borderRadius: '4px',
+                                boxShadow: isActive || isHovered ? `0 0 10px ${vec.color}60` : 'none',
+                                transition: 'all 0.15s ease-in-out',
+                              }}
+                            >
+                              {vec.trigger ? (vec.trigger.charAt(0).toUpperCase() + vec.trigger.slice(1)) : ''} ({(vec.score * 100).toFixed(1)}%)
+                            </motion.span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {vectors.length === 0 && (
+                      <div className="flex flex-col gap-2 p-2 rounded bg-emerald-950/20 border border-emerald-500/20">
+                        <div className="text-emerald-400 flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 shrink-0" />
+                          <span>Евристичний аналіз: маніпулятивних тригерів чи шкідливого контенту не знайдено</span>
+                        </div>
+                        <div className="text-emerald-400 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 shrink-0" />
+                          <span>Обфускація: текст чистий (без прихованих символів чи підміни літер)</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-[11px] text-zinc-400 border-t border-zinc-800/80 pt-2.5 font-sans leading-relaxed">
+                      <span className="text-cyan-400 font-mono font-semibold">Пояснювальний ШІ (XAI): </span>
+                      {threatLevel > 60
+                        ? 'Модель виявила високу концентрацію маніпулятивних маркерів (заклик до негайної дії, залякування блокуванням або фінансовий тиск), характерних для цільового фішингу.'
+                        : (threatLevel === 0
+                            ? 'Повідомлення верифіковано як безпечне: відправник підтверджений, домен не містить репутаційних зауважень, текст не має ознак соціальної інженерії.'
+                            : 'Базовий рівень ризику розраховано на основі структури тексту та відсутності криптографічно підписаних поштових заголовків.')}
+                    </div>
+                  </div>
+                </CollapsibleSection>
+
+                {/* Секція 2: Аналіз посилань та репутаційна розвідка (Safe Browsing / RDAP / NXDOMAIN) */}
+                <CollapsibleSection
+                  title="Аналіз посилань та інфраструктурні загрози (Safe Browsing & IoC)"
+                  icon={<Globe className="w-4 h-4 text-cyan-400" />}
+                  isOpen={openSections.links}
+                  onToggle={() => toggleSection('links')}
+                  variant={hasHardBlacklist ? 'danger' : (safeBrowsingMatches.length > 0 ? 'warning' : 'default')}
+                  badge={
+                    safeBrowsingMatches.length > 0 ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950/60 text-rose-300 border border-rose-500/40">
+                        {hasHardBlacklist ? '⛔ Чорний список' : '⚠️ Попередження'} ({safeBrowsingMatches.length})
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950/40 text-emerald-400 border border-emerald-500/30">
+                        ✓ Безпечно
+                      </span>
+                    )
+                  }
+                >
+                  <div className="space-y-4">
+                    {/* Список збігів Safe Browsing / NXDOMAIN (якщо є) */}
+                    {safeBrowsingMatches.length > 0 && (
+                      <div className="space-y-3 p-3.5 rounded-lg bg-zinc-900/40 border border-rose-500/30">
+                        {safeBrowsingMatches.map((match, idx) => {
+                          const threatTypes: Record<string, string> = {
+                            'MALWARE': 'Шкідливе ПЗ (загроза зараження вірусом)',
+                            'SOCIAL_ENGINEERING': 'Соціальна інженерія (фішинг, спроба викрасти паролі чи дані)',
+                            'UNWANTED_SOFTWARE': 'Небажане ПЗ (програми, що змінюють налаштування без вашого дозволу)',
+                            'POTENTIALLY_HARMFUL_APPLICATION': 'Потенційно небезпечний додаток'
+                          };
+                          const explanation = threatTypes[match.threatType] || match.threatType;
+                          const isHard = match.threatType.includes('URLhaus') || match.threatType.includes('Safe Browsing') || match.threatType.includes('NXDOMAIN');
+                          
+                          return (
+                            <div key={idx} className="flex items-start gap-2.5 text-xs">
+                              <ShieldAlert className={`w-4 h-4 shrink-0 mt-0.5 ${isHard ? 'text-rose-400' : 'text-amber-400'}`} />
+                              <div>
+                                <div className="text-zinc-200">
+                                  Посилання <strong className="font-mono text-white break-all">{match.threat?.url}</strong> {isHard ? 'блокується глобальними базами безпеки:' : 'має попередження аналізатора:'}
+                                </div>
+                                <div className={`font-semibold font-mono text-[11px] mt-0.5 ${isHard ? 'text-rose-400' : 'text-amber-400'}`}>
+                                  Тип загрози: {explanation}
+                                </div>
+                                {match.details && (
+                                  <div className="text-zinc-400 text-[11px] mt-0.5">
+                                    {match.details}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Детальний інспектор URL */}
+                    <UrlInspector
+                      urls={state.context.extractedIndicators?.urls}
+                      ips={state.context.extractedIndicators?.ips}
+                      safeBrowsingMatches={safeBrowsingMatches}
+                      rdapResults={state.context.rdapResults}
+                      brandResults={state.context.brandResults}
+                    />
+                  </div>
+                </CollapsibleSection>
+
+                {/* Секція 3: Автентичність відправника та захист інфраструктури (SPF / DKIM / DMARC / RDAP) */}
+                <CollapsibleSection
+                  title="Автентичність відправника та інфраструктура (RFC 7208 / 6376 / 7489)"
+                  icon={<Shield className="w-4 h-4 text-cyan-400" />}
+                  isOpen={openSections.auth}
+                  onToggle={() => toggleSection('auth')}
+                  variant={state.context.emailAuth?.isSpoofed ? 'danger' : 'default'}
+                  badge={
+                    state.context.emailAuth?.hasHeaders ? (
+                      state.context.emailAuth.isSpoofed ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950/60 text-rose-300 border border-rose-500/40">
+                          ⚠️ Спуфінг відправника
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950/40 text-emerald-400 border border-emerald-500/30">
+                          ✓ Верифіковано
+                        </span>
+                      )
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-900 text-zinc-400 border border-zinc-800">
+                        Без заголовків
+                      </span>
+                    )
+                  }
+                >
+                  <div className="space-y-4">
+                    <EmailAuthCard emailAuth={state.context.emailAuth} />
+                    <DomainIntelCard brandResults={state.context.brandResults} rdapResults={state.context.rdapResults} />
+                  </div>
+                </CollapsibleSection>
               </motion.section>
             )}
         </Container>

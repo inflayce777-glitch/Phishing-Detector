@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Panel } from '@/components/ui/Panel';
 import ThreatCanvas from '@/components/3d/ThreatCanvas';
-import { RotateCw, Crosshair, X, ShieldCheck, AlertOctagon, Info } from 'lucide-react';
+import { RotateCw, Crosshair, X, ShieldCheck, AlertOctagon } from 'lucide-react';
 
 interface GraphPanelProps {
   vectors: any[];
@@ -85,11 +85,7 @@ export const GraphPanel = ({ vectors, activeNode, setActiveNode, threatLevel }: 
           />
         </Suspense>
 
-        {/* Quick Hint Overlay on Top Left */}
-        <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-950/80 backdrop-blur-md border border-zinc-800/80 text-[10px] font-mono text-zinc-400">
-          <Info className="w-3 h-3 text-cyan-400 shrink-0" />
-          <span>Клікніть по вузлу для фокусу камери</span>
-        </div>
+
 
         {/* Interactive Active Node Details Card */}
         <AnimatePresence>
