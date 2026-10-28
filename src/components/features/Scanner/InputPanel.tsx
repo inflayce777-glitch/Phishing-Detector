@@ -1,6 +1,6 @@
 'use client';
 import { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, MessageSquare, Camera, AlertTriangle } from 'lucide-react';
 import { Panel } from '@/components/ui/Panel';
 import { Input, Textarea } from '@/components/ui/Input';
@@ -104,8 +104,16 @@ export const InputPanel = ({
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {isComplete && !isEditing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <AnimatePresence mode="wait">
+          {isComplete && !isEditing ? (
+            <motion.div
+              key="complete-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+            >
             <div>
               <div style={{ fontSize: '11px', color: 'var(--fx-cyan)', marginBottom: '4px', letterSpacing: '0.5px' }}>Початковий текст (сирий)</div>
               <Textarea
@@ -161,9 +169,16 @@ export const InputPanel = ({
                 />
               </>
             )}
-          </div>
-        ) : (
-          <>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="edit-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+            >
             <Input
               placeholder={appMode === 'email' ? "Відправник (Email)" : "Ім'я відправника або номер телефону"}
               value={emailInput}
@@ -177,8 +192,9 @@ export const InputPanel = ({
               disabled={isScanning}
               style={{ minHeight: '200px' }}
             />
-          </>
+          </motion.div>
         )}
+      </AnimatePresence>
         
         {!isScanning && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginTop: '5px' }}>

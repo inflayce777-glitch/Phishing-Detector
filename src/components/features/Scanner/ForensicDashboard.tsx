@@ -634,7 +634,7 @@ export default function ForensicDashboard() {
         )}
       </AnimatePresence>
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<div className="min-h-screen bg-[#0b1013]" />}>
         <ForensicDashboardContent />
       </Suspense>
     </>

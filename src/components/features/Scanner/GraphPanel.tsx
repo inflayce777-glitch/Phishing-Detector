@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Panel } from '@/components/ui/Panel';
 import ThreatCanvas from '@/components/3d/ThreatCanvas';
@@ -70,13 +70,20 @@ export const GraphPanel = ({ vectors, activeNode, setActiveNode, threatLevel }: 
     >
       <div className="relative w-full h-full min-h-[380px] flex-1 bg-black/40 overflow-hidden">
         {/* 3D WebGL Canvas */}
-        <ThreatCanvas 
-          vectors={vectors} 
-          onNodeClick={setActiveNode} 
-          riskScore={threatLevel} 
-          activeNode={activeNode}
-          autoRotate={autoRotate}
-        />
+        <Suspense fallback={
+          <div className="w-full h-full flex flex-col items-center justify-center bg-black/40 text-cyan-400 font-mono text-xs gap-2 min-h-[380px]">
+            <span className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            <span className="tracking-widest uppercase">Ініціалізація 3D-графа...</span>
+          </div>
+        }>
+          <ThreatCanvas 
+            vectors={vectors} 
+            onNodeClick={setActiveNode} 
+            riskScore={threatLevel} 
+            activeNode={activeNode}
+            autoRotate={autoRotate}
+          />
+        </Suspense>
 
         {/* Quick Hint Overlay on Top Left */}
         <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-950/80 backdrop-blur-md border border-zinc-800/80 text-[10px] font-mono text-zinc-400">

@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Line, Text, Grid, useGLTF, Environment } from '@react-three/drei';
+import { OrbitControls, Line, Text, Grid, useGLTF } from '@react-three/drei';
 import { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import * as THREE from 'three';
 
@@ -405,39 +405,39 @@ export default function ThreatCanvas({
         <ambientLight intensity={1.6} color={ambientColor} />
         <directionalLight position={[10, 12, 10]} intensity={3} color={directionalColor} />
         <directionalLight position={[-10, -10, -10]} intensity={1.2} color={isHighRisk ? "#ff003c" : (isSafe ? "#10b981" : "#00f3ff")} />
-        <Environment preset="city" />
+        <pointLight position={[0, 0, 0]} intensity={2.5} color={pulseColor} distance={16} />
         
-        <CameraRig selectedPos={selectedPos} />
-
-        <Grid 
-          infiniteGrid 
-          fadeDistance={18} 
-          sectionColor={gridColor} 
-          cellColor={gridColor} 
-          sectionSize={1} 
-          cellSize={0.2} 
-          position={[0, -2, 0]} 
-          cellThickness={0.5} 
-          sectionThickness={1}
-          {...({
-             opacity: isHighRisk ? 0.35 : (isSafe ? 0.25 : 0.18),
-             transparent: true
-          } as any)}
-        />
-
-        <RadarPulse color={pulseColor} />
-
-        {childNodes.map((node) => (
-          <ThreatEdge
-            key={`edge-${node.id}`}
-            start={rootNode.position}
-            end={node.position}
-            color={node.color}
-            selected={selectedNode?.id === node.id}
-          />
-        ))}
-
         <Suspense fallback={null}>
+          <CameraRig selectedPos={selectedPos} />
+
+          <Grid 
+            infiniteGrid 
+            fadeDistance={18} 
+            sectionColor={gridColor} 
+            cellColor={gridColor} 
+            sectionSize={1} 
+            cellSize={0.2} 
+            position={[0, -2, 0]} 
+            cellThickness={0.5} 
+            sectionThickness={1}
+            {...({
+               opacity: isHighRisk ? 0.35 : (isSafe ? 0.25 : 0.18),
+               transparent: true
+            } as any)}
+          />
+
+          <RadarPulse color={pulseColor} />
+
+          {childNodes.map((node) => (
+            <ThreatEdge
+              key={`edge-${node.id}`}
+              start={rootNode.position}
+              end={node.position}
+              color={node.color}
+              selected={selectedNode?.id === node.id}
+            />
+          ))}
+
           {allNodes.map((node) => (
             <ThreatNode 
               key={node.id} 
