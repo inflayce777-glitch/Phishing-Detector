@@ -270,7 +270,13 @@ const runInferenceActor = fromPromise(
 
     const candidateUrls = [...(heuristics.extractedIndicators?.urls || [])];
     if (input.linkUrl && !candidateUrls.includes(input.linkUrl)) {
-      candidateUrls.push(input.linkUrl);
+      const isPresentInContent = Boolean(
+        (input.rawText && input.rawText.includes(input.linkUrl)) ||
+        (text && text.includes(input.linkUrl))
+      );
+      if (isPresentInContent || candidateUrls.length === 0) {
+        candidateUrls.push(input.linkUrl);
+      }
     }
 
     const seenCandidateDomains = new Set<string>();

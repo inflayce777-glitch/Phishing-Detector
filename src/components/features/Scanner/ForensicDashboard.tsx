@@ -145,7 +145,15 @@ function ForensicDashboardContent() {
     setHoveredVectorId(null);
     setIsEditing(false);
     setDashboardTab('input_graph');
-    send({ type: 'START_SCAN', payload: { text: inputValue, senderEmail: emailInput, linkUrl: urlInput } });
+    setSafeBrowsingMatches([]);
+
+    // Drop stale urlInput if it is no longer present in inputValue
+    const effectiveUrl = (urlInput && inputValue.includes(urlInput)) ? urlInput : '';
+    if (!effectiveUrl && urlInput) {
+      setUrlInput('');
+    }
+
+    send({ type: 'START_SCAN', payload: { text: inputValue, senderEmail: emailInput, linkUrl: effectiveUrl } });
   };
 
   const isScanning =

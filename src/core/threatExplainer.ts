@@ -150,9 +150,10 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
   }
 
   // 4. Evaluate Brand Typosquatting / Combosquatting
-  if (brandResults.length > 0) {
-    const brands = brandResults.map(b => b.targetBrand?.name || b.candidateDomain).join(', ');
-    const maxSquatScore = Math.max(...brandResults.map(b => b.similarityScore || 0.85));
+  const impersonatedBrands = (brandResults || []).filter(b => b.isImpersonation && b.targetBrand);
+  if (impersonatedBrands.length > 0) {
+    const brands = Array.from(new Set(impersonatedBrands.map(b => b.targetBrand?.name || b.candidateDomain))).join(', ');
+    const maxSquatScore = Math.max(...impersonatedBrands.map(b => b.similarityScore || 0.85));
     drivers.push({
       title: `Тайпосквотинг / комбосквотинг бренду (${brands})`,
       score: Math.round(maxSquatScore * 100),

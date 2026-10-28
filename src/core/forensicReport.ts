@@ -109,8 +109,9 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
     `;
 
   // Format Brand Impersonation
-  const brandsList = (data.brandResults || []).length > 0
-    ? data.brandResults.map(b => `
+  const impersonatedBrands = (data.brandResults || []).filter(b => b.isImpersonation && b.targetBrand);
+  const brandsList = impersonatedBrands.length > 0
+    ? impersonatedBrands.map(b => `
       <div style="background: #fffbeb; border-left: 4px solid #d97706; border-top: 1px solid #fde68a; border-right: 1px solid #fde68a; border-bottom: 1px solid #fde68a; padding: 10px 12px; margin-bottom: 8px; border-radius: 5px; break-inside: avoid; page-break-inside: avoid;">
         <div style="color: #92400e; font-size: 11px; font-weight: 800;">
           Імітація бренду: ${b.targetBrand?.name || b.candidateDomain} (Схожість: ${((b.similarityScore || 0.85) * 100).toFixed(0)}%)

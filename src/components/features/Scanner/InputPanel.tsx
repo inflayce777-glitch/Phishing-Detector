@@ -183,7 +183,12 @@ export const InputPanel = ({
             <Textarea
               placeholder="Вставте текст підозрілого повідомлення сюди..."
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                if (urlInput && !e.target.value.includes(urlInput)) {
+                  setUrlInput('');
+                }
+              }}
               disabled={isScanning}
               style={{ minHeight: '200px' }}
             />
