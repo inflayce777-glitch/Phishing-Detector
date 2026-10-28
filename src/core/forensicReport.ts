@@ -23,7 +23,7 @@ export interface ForensicReportPayload {
 /**
  * Generates an executive, professional high-contrast Forensic Cyber Threat PDF Report.
  * Specifically calibrated for flawless white paper rendering, sharp vector typography,
- * and 100% WCAG AAA contrast ratio compliance.
+ * seamless 1-page/multi-page print fitting, and 100% WCAG AAA contrast ratio compliance.
  */
 export function generateForensicPdfReport(data: ForensicReportPayload) {
   const dateStr = data.timestamp ? new Date(data.timestamp) : new Date();
@@ -70,20 +70,20 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
   const triggersRows = data.vectors.length > 0
     ? data.vectors.map(v => `
       <tr style="break-inside: avoid; page-break-inside: avoid;">
-        <td style="padding: 9px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #0f172a;">
+        <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #0f172a; font-size: 10.5px;">
           ${v.trigger}
         </td>
-        <td style="padding: 9px 12px; border-bottom: 1px solid #e2e8f0; font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 800; color: #dc2626; text-align: center;">
+        <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 800; color: #dc2626; text-align: center; font-size: 11px;">
           ${(v.score * 100).toFixed(1)}%
         </td>
-        <td style="padding: 9px 12px; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 11px; line-height: 1.45;">
+        <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 10px; line-height: 1.4;">
           ${v.explanation || '—'}
         </td>
       </tr>
     `).join('')
     : `
       <tr>
-        <td colspan="3" style="padding: 14px; text-align: center; color: #166534; font-weight: 600; font-style: italic;">
+        <td colspan="3" style="padding: 10px; text-align: center; color: #166534; font-weight: 600; font-style: italic; font-size: 10.5px;">
           ✓ Маніпулятивних маркерів чи семантичних тригерів не виявлено (контент чистий)
         </td>
       </tr>
@@ -92,18 +92,18 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
   // Format URLs & IOC cards (black mono URL text on crisp white subcard)
   const urlsList = (data.safeBrowsingMatches || []).length > 0
     ? data.safeBrowsingMatches.map(m => `
-      <div style="background: #fef2f2; border-left: 4px solid #dc2626; border-top: 1px solid #fecaca; border-right: 1px solid #fecaca; border-bottom: 1px solid #fecaca; padding: 10px 12px; margin-bottom: 8px; border-radius: 5px; break-inside: avoid; page-break-inside: avoid;">
-        <div style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; font-weight: 800; color: #0f172a; word-break: break-all; background: #ffffff; padding: 4px 8px; border-radius: 4px; border: 1px solid #fca5a5; margin-bottom: 6px;">
+      <div style="background: #fef2f2; border-left: 3px solid #dc2626; border-top: 1px solid #fecaca; border-right: 1px solid #fecaca; border-bottom: 1px solid #fecaca; padding: 6px 8px; margin-bottom: 6px; border-radius: 4px; break-inside: avoid; page-break-inside: avoid;">
+        <div style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 10px; font-weight: 700; color: #0f172a; word-break: break-all; background: #ffffff; padding: 3px 6px; border-radius: 3px; border: 1px solid #fca5a5; margin-bottom: 4px;">
           ${m.threat?.url || 'URL'}
         </div>
-        <div style="color: #991b1b; font-size: 11px; font-weight: 800;">
+        <div style="color: #991b1b; font-size: 10px; font-weight: 800;">
           Загроза: ${m.threatType}
         </div>
-        ${m.details ? `<div style="color: #334155; font-size: 11px; margin-top: 4px; line-height: 1.45;">${m.details}</div>` : ''}
+        ${m.details ? `<div style="color: #334155; font-size: 9.5px; margin-top: 3px; line-height: 1.35;">${m.details}</div>` : ''}
       </div>
     `).join('')
     : `
-      <div style="color: #166534; font-size: 12px; font-weight: 600; padding: 6px 0;">
+      <div style="color: #166534; font-size: 10.5px; font-weight: 600; padding: 4px 0;">
         ✓ Усі вилучені посилання перевірено в базах Google Safe Browsing, PhishTank, OpenPhish та URLhaus: загроз не знайдено.
       </div>
     `;
@@ -120,53 +120,54 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
         (b.technique || 'тайпосквотинг');
 
       return `
-        <div style="background: #fffbeb; border-left: 4px solid #d97706; border-top: 1px solid #fde68a; border-right: 1px solid #fde68a; border-bottom: 1px solid #fde68a; padding: 10px 12px; margin-bottom: 8px; border-radius: 5px; break-inside: avoid; page-break-inside: avoid;">
-          <div style="color: #92400e; font-size: 11px; font-weight: 800;">
+        <div style="background: #fffbeb; border-left: 3px solid #d97706; border-top: 1px solid #fde68a; border-right: 1px solid #fde68a; border-bottom: 1px solid #fde68a; padding: 6px 8px; margin-bottom: 6px; border-radius: 4px; break-inside: avoid; page-break-inside: avoid;">
+          <div style="color: #92400e; font-size: 10px; font-weight: 800;">
             Імітація бренду: ${b.targetBrand?.name || b.candidateDomain} (Схожість: ${((b.similarityScore || 0.85) * 100).toFixed(0)}%)
           </div>
-          <div style="color: #1e293b; font-size: 11px; margin-top: 4px; line-height: 1.45;">
+          <div style="color: #1e293b; font-size: 9.5px; margin-top: 3px; line-height: 1.35;">
             <strong>Домен:</strong> <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 700; color: #0f172a;">${b.candidateDomain || '—'}</span> | <strong>Метод:</strong> ${techniqueLabel}
           </div>
         </div>
       `;
     }).join('')
-    : '<div style="color: #475569; font-size: 11px; padding: 6px 0;">Ознак підміни відомих фінансових чи поштових брендів не зафіксовано.</div>';
+    : '<div style="color: #475569; font-size: 10px; padding: 4px 0;">Ознак підміни відомих фінансових чи поштових брендів не зафіксовано.</div>';
 
   // Format Email Auth
   const authSummary = data.emailAuth?.hasHeaders
     ? `
-      <div style="display: flex; gap: 16px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; color: #0f172a; margin-top: 6px;">
+      <div style="display: flex; gap: 12px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 10px; color: #0f172a; margin-top: 4px;">
         <div>SPF: <span style="font-weight: 800; color: ${data.emailAuth.spf === 'pass' ? '#166534' : '#dc2626'};">${data.emailAuth.spf || 'None'}</span></div>
         <div>DKIM: <span style="font-weight: 800; color: ${data.emailAuth.dkim === 'pass' ? '#166534' : '#dc2626'};">${data.emailAuth.dkim || 'None'}</span></div>
         <div>DMARC: <span style="font-weight: 800; color: ${data.emailAuth.dmarcAlignment === 'aligned' ? '#166534' : '#dc2626'};">${data.emailAuth.dmarcAlignment || 'None'}</span></div>
       </div>
     `
-    : '<div style="color: #475569; font-size: 11px; margin-top: 4px;">Службові поштові заголовки відсутні (аналіз тексту або месенджера).</div>';
+    : '<div style="color: #475569; font-size: 10px; margin-top: 3px;">Службові поштові заголовки відсутні (аналіз тексту або месенджера).</div>';
 
   // Format XAI Findings as high-contrast structured bullet cards
   const findingsHtml = (data.threatReport?.findings || []).length > 0
     ? (data.threatReport?.findings || []).map(f => {
         const isCrit = f.severity === 'critical';
         const isWarn = f.severity === 'warning';
-        const badgeBg = isCrit ? '#fee2e2' : isWarn ? '#fef3c7' : '#dcfce7';
-        const badgeText = isCrit ? '#991b1b' : isWarn ? '#92400e' : '#166534';
-        const badgeBorder = isCrit ? '#fca5a5' : isWarn ? '#fcd34d' : '#86efac';
+        const isSafe = f.severity === 'safe';
+        const badgeBg = isCrit ? '#fee2e2' : isWarn ? '#fef3c7' : isSafe ? '#f0fdf4' : '#f1f5f9';
+        const badgeText = isCrit ? '#991b1b' : isWarn ? '#92400e' : isSafe ? '#166534' : '#1e293b';
+        const badgeBorder = isCrit ? '#f87171' : isWarn ? '#f59e0b' : isSafe ? '#86efac' : '#cbd5e1';
 
         return `
-          <div style="margin-bottom: 9px; padding-bottom: 9px; border-bottom: 1px solid #e2e8f0; break-inside: avoid; page-break-inside: avoid;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span style="background: ${badgeBg}; color: ${badgeText}; border: 1.5px solid ${badgeBorder}; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">
+          <div style="margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9; break-inside: avoid; page-break-inside: avoid;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <span style="background: ${badgeBg}; color: ${badgeText}; border: 1px solid ${badgeBorder}; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 8.5px; font-weight: 800; padding: 1.5px 6px; border-radius: 3px; text-transform: uppercase;">
                 ${f.category}
               </span>
-              <strong style="color: #0f172a; font-size: 12px;">${f.title}</strong>
+              <strong style="color: #0f172a; font-size: 11px;">${f.title}</strong>
             </div>
-            <div style="color: #334155; font-size: 11px; line-height: 1.5; padding-left: 2px;">
+            <div style="color: #334155; font-size: 10px; line-height: 1.4; padding-left: 2px;">
               ${f.detail}
             </div>
           </div>
         `;
       }).join('')
-    : `<div style="color: #334155; line-height: 1.5;">${data.threatReport?.xaiNarrative || 'Контент проаналізовано на наявність маркерів соціальної інженерії.'}</div>`;
+    : `<div style="color: #334155; font-size: 10.5px; line-height: 1.4;">${data.threatReport?.xaiNarrative || 'Контент проаналізовано на наявність маркерів соціальної інженерії.'}</div>`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -176,8 +177,8 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
       <title>Криміналістичний звіт — ${caseId}</title>
       <style>
         @page {
-          size: A4;
-          margin: 12mm 14mm 12mm 14mm;
+          size: A4 portrait;
+          margin: 8mm 10mm 8mm 10mm;
         }
         * {
           box-sizing: border-box;
@@ -187,53 +188,53 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
         body {
           margin: 0;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-          background: #e2e8f0;
+          background: #f1f5f9;
           color: #0f172a;
-          font-size: 12px;
-          line-height: 1.5;
-          padding: 20px 0;
+          font-size: 11px;
+          line-height: 1.45;
+          padding: 16px 0;
         }
         .report-page {
           max-width: 800px;
           margin: 0 auto;
           background: #ffffff;
           border: 1px solid #cbd5e1;
-          border-radius: 8px;
-          padding: 28px 32px;
-          box-shadow: 0 4px 25px rgba(0,0,0,0.12);
+          border-radius: 6px;
+          padding: 22px 26px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
         .header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          border-bottom: 2px solid #0e7490;
-          padding-bottom: 14px;
-          margin-bottom: 18px;
+          border-bottom: 2px solid #0f172a;
+          padding-bottom: 10px;
+          margin-bottom: 12px;
         }
         .brand-title {
-          font-size: 19px;
+          font-size: 18px;
           font-weight: 800;
           letter-spacing: -0.01em;
           color: #0f172a;
           display: flex;
           align-items: center;
-          gap: 9px;
+          gap: 8px;
         }
         .brand-sub {
-          font-size: 10px;
-          color: #334155;
+          font-size: 9px;
+          color: #475569;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          margin-top: 3px;
+          margin-top: 2px;
           font-family: 'SFMono-Regular', Consolas, monospace;
           font-weight: 700;
         }
         .meta-box {
           text-align: right;
           font-family: 'SFMono-Regular', Consolas, monospace;
-          font-size: 10px;
-          color: #475569;
-          line-height: 1.6;
+          font-size: 9px;
+          color: #334155;
+          line-height: 1.5;
         }
         .verdict-banner {
           display: flex;
@@ -241,23 +242,25 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
           justify-content: space-between;
           background: ${verdictTheme.bg};
           border: 2px solid ${verdictTheme.border};
-          border-radius: 8px;
-          padding: 16px 20px;
-          margin-bottom: 18px;
+          border-radius: 6px;
+          padding: 12px 16px;
+          margin-bottom: 10px;
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
         .verdict-title {
-          font-size: 22px;
-          font-weight: 800;
+          font-size: 20px;
+          font-weight: 900;
           color: ${verdictTheme.titleColor};
           letter-spacing: -0.01em;
           margin: 0;
         }
         .verdict-desc {
           color: #334155;
-          font-size: 11px;
-          margin-top: 5px;
-          max-width: 520px;
-          line-height: 1.5;
+          font-size: 10.5px;
+          margin-top: 3px;
+          max-width: 530px;
+          line-height: 1.4;
           font-weight: 500;
         }
         .score-circle {
@@ -265,91 +268,97 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 68px;
-          height: 68px;
+          width: 58px;
+          height: 58px;
           border-radius: 50%;
           border: 3px solid ${verdictTheme.circleBorder};
           background: #ffffff;
           color: ${verdictTheme.circleText};
-          font-weight: 800;
-          font-size: 20px;
+          font-weight: 900;
+          font-size: 18px;
           font-family: 'SFMono-Regular', Consolas, monospace;
           flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .section-block {
+          margin-top: 8px;
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
         .section-title {
-          font-size: 11px;
+          font-size: 9.5px;
           font-weight: 800;
           color: #0f172a;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
-          border-left: 3.5px solid #0891b2;
-          border-bottom: 1.5px solid #e2e8f0;
-          padding-left: 8px;
-          padding-bottom: 5px;
-          margin-top: 18px;
-          margin-bottom: 10px;
+          letter-spacing: 0.05em;
+          background: #f8fafc;
+          border-left: 3.5px solid #0f172a;
+          border-top: 1px solid #cbd5e1;
+          border-right: 1px solid #cbd5e1;
+          border-bottom: 1px solid #cbd5e1;
+          padding: 3px 8px;
+          border-radius: 4px 4px 0 0;
           display: flex;
           align-items: center;
           gap: 6px;
           break-after: avoid;
           page-break-after: avoid;
         }
+        .section-card {
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-top: none;
+          border-radius: 0 0 4px 4px;
+          padding: 8px 12px;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
         .grid-2 {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px;
+          gap: 8px;
           break-inside: avoid;
           page-break-inside: avoid;
         }
         .card {
           background: #f8fafc;
           border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          padding: 11px 14px;
+          border-radius: 4px;
+          padding: 8px 10px;
           break-inside: avoid;
           page-break-inside: avoid;
         }
         .card-label {
-          font-size: 10px;
-          color: #475569;
+          font-size: 9px;
+          color: #64748b;
           text-transform: uppercase;
           font-family: 'SFMono-Regular', Consolas, monospace;
           font-weight: 700;
         }
         .card-val {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 700;
           color: #0f172a;
-          margin-top: 3px;
+          margin-top: 2px;
           word-break: break-all;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 11px;
+          font-size: 10px;
           break-inside: avoid;
           page-break-inside: avoid;
         }
         th {
           text-align: left;
-          padding: 8px 12px;
+          padding: 6px 10px;
           background: #f1f5f9;
-          color: #1e293b;
+          color: #0f172a;
           font-family: 'SFMono-Regular', Consolas, monospace;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 800;
           text-transform: uppercase;
           border-bottom: 2px solid #cbd5e1;
-        }
-        .xai-box {
-          background: #f8fafc;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          padding: 12px 16px;
-          font-size: 11px;
-          break-inside: avoid;
-          page-break-inside: avoid;
         }
         .checklist {
           list-style: none;
@@ -358,11 +367,12 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
         }
         .checklist li {
           position: relative;
-          padding-left: 18px;
-          margin-bottom: 6px;
-          font-size: 11px;
-          color: #1e293b;
+          padding-left: 16px;
+          margin-bottom: 4px;
+          font-size: 10px;
+          color: #0f172a;
           font-weight: 500;
+          line-height: 1.4;
         }
         .checklist li::before {
           content: "▸";
@@ -370,39 +380,39 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
           left: 2px;
           color: #0e7490;
           font-weight: bold;
-          font-size: 13px;
+          font-size: 12px;
         }
         .footer {
-          margin-top: 24px;
+          margin-top: 10px;
           border-top: 1px solid #cbd5e1;
-          padding-top: 12px;
+          padding-top: 6px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 10px;
-          color: #475569;
+          font-size: 9px;
+          color: #64748b;
           font-family: 'SFMono-Regular', Consolas, monospace;
           break-inside: avoid;
           page-break-inside: avoid;
         }
         .print-btn {
           position: fixed;
-          bottom: 24px;
-          right: 24px;
-          background: #0e7490;
+          bottom: 20px;
+          right: 20px;
+          background: #0f172a;
           color: #ffffff;
           font-weight: 700;
-          padding: 11px 22px;
+          padding: 10px 20px;
           border-radius: 6px;
           border: none;
           cursor: pointer;
-          box-shadow: 0 4px 16px rgba(14, 116, 144, 0.4);
-          font-size: 13px;
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.4);
+          font-size: 12px;
           z-index: 100;
           font-family: inherit;
         }
         .print-btn:hover {
-          background: #0891b2;
+          background: #1e293b;
         }
         @media print {
           body {
@@ -414,11 +424,16 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
             border: none !important;
             box-shadow: none !important;
             padding: 0 !important;
+            margin: 0 !important;
           }
           .print-btn {
             display: none !important;
           }
-          .card, .xai-box, table, tr, .verdict-banner, .grid-2, .footer {
+          .section-block {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .card, .section-card, table, tr, .verdict-banner, .grid-2, .footer {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
@@ -438,8 +453,8 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
           <div>
             <div class="brand-title">
               <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
-                <path d="M10 2 17 5v4.8c0 4.1-2.9 6.9-7 8.2-4.1-1.3-7-4.1-7-8.2V5l7-3Z" stroke="#0e7490" stroke-width="1.6"/>
-                <path d="M6.5 10h2.2l1.2-2.2 1.6 4.4 1-2.2h1" stroke="#0e7490" stroke-width="1.4"/>
+                <path d="M10 2 17 5v4.8c0 4.1-2.9 6.9-7 8.2-4.1-1.3-7-4.1-7-8.2V5l7-3Z" stroke="#0f172a" stroke-width="1.8" fill="#f8fafc"/>
+                <path d="M6.5 10h2.2l1.2-2.2 1.6 4.4 1-2.2h1" stroke="#dc2626" stroke-width="1.6"/>
               </svg>
               <span>Cyber Threat Forensic Analyzer 2.0</span>
             </div>
@@ -471,7 +486,7 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
           <div class="card">
             <div class="card-label">Відправник (Declared Sender)</div>
             <div class="card-val">${data.senderEmail || data.effectiveSender || 'Не вказано / месенджер'}</div>
-            <div class="card-label" style="margin-top: 6px;">Автентичність відправника (RFC)</div>
+            <div class="card-label" style="margin-top: 4px;">Автентичність відправника (RFC)</div>
             ${authSummary}
           </div>
           <div class="card">
@@ -479,7 +494,7 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
             <div class="card-val" style="color: ${verdictTheme.titleColor};">
               ${data.threatLevel > 70 ? 'Цільовий фішинг (Spear Phishing)' : (data.isSpam ? 'Небажана розсилка (Spam)' : 'Низький рівень ризику')}
             </div>
-            <div class="card-label" style="margin-top: 6px;">Довірений реєстр (BIMI)</div>
+            <div class="card-label" style="margin-top: 4px;">Довірений реєстр (BIMI)</div>
             <div class="card-val" style="color: ${data.isTrusted ? '#15803d' : '#475569'};">
               ${data.isTrusted ? 'Верифікована офіційна інфраструктура' : 'Сторонній або непідтверджений вузол'}
             </div>
@@ -487,63 +502,73 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
         </div>
 
         <!-- Dynamic XAI Explanation as Structured Findings -->
-        <div class="section-title">
-          <span>Пояснювальний ШІ (XAI) — Результати розвідки за векторами</span>
-        </div>
-        <div class="xai-box">
-          ${findingsHtml}
+        <div class="section-block">
+          <div class="section-title">
+            <span>Пояснювальний ШІ (XAI) — Результати розвідки за векторами</span>
+          </div>
+          <div class="section-card">
+            ${findingsHtml}
+          </div>
         </div>
 
         <!-- Triggers Table -->
-        <div class="section-title">
-          <span>Виявлені семантичні тригери та психологічні вектори</span>
-        </div>
-        <div class="card" style="padding: 0; overflow: hidden;">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 32%;">Вектор атаки</th>
-                <th style="width: 14%; text-align: center;">Впевненість</th>
-                <th style="width: 54%;">Криміналістична характеристика</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${triggersRows}
-            </tbody>
-          </table>
+        <div class="section-block">
+          <div class="section-title">
+            <span>Виявлені семантичні тригери та психологічні вектори</span>
+          </div>
+          <div class="section-card" style="padding: 0; overflow: hidden;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 32%;">Вектор атаки</th>
+                  <th style="width: 14%; text-align: center;">Впевненість</th>
+                  <th style="width: 54%;">Криміналістична характеристика</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${triggersRows}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Infrastructure & Brand Spoofing -->
-        <div class="section-title">
-          <span>Інфраструктурна розвідка та захист брендів (Safe Browsing & IoC)</span>
-        </div>
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-label" style="margin-bottom: 6px;">Репутація вилучених посилань</div>
-            ${urlsList}
+        <div class="section-block">
+          <div class="section-title">
+            <span>Інфраструктурна розвідка та захист брендів (Safe Browsing & IoC)</span>
           </div>
-          <div class="card">
-            <div class="card-label" style="margin-bottom: 6px;">Тайпосквотинг та імітація брендів</div>
-            ${brandsList}
+          <div class="section-card" style="padding: 8px 10px;">
+            <div class="grid-2">
+              <div class="card" style="margin: 0;">
+                <div class="card-label" style="margin-bottom: 4px;">Репутація вилучених посилань</div>
+                ${urlsList}
+              </div>
+              <div class="card" style="margin: 0;">
+                <div class="card-label" style="margin-bottom: 4px;">Тайпосквотинг та імітація брендів</div>
+                ${brandsList}
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Recommendations -->
-        <div class="section-title">
-          <span>Рекомендовані дії реагування на інцидент (SOC Playbook)</span>
-        </div>
-        <div class="card">
-          <ul class="checklist">
-            ${(data.threatReport?.recommendedActions || [
-              'Не взаємодіяти з вмістом повідомлення та не передавати чутливі реквізити.',
-              'Додати виявлені домени до чорного списку DNS-резолвера.'
-            ]).map(a => `<li>${a}</li>`).join('')}
-          </ul>
+        <div class="section-block">
+          <div class="section-title">
+            <span>Рекомендовані дії реагування на інцидент (SOC Playbook)</span>
+          </div>
+          <div class="section-card">
+            <ul class="checklist">
+              ${(data.threatReport?.recommendedActions || [
+                'Не взаємодіяти з вмістом повідомлення та не передавати чутливі реквізити.',
+                'Додати виявлені домени до чорного списку DNS-резолвера.'
+              ]).map(a => `<li>${a}</li>`).join('')}
+            </ul>
+          </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-          <div>Хеш верифікації звіту: <strong style="color: #0e7490;">SHA256:${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}</strong></div>
+          <div>Хеш верифікації звіту: <strong style="color: #0f172a;">SHA256:${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}</strong></div>
           <div>Створено автоматично ядром Cyber Threat Forensic Analyzer 2.0</div>
         </div>
       </div>
@@ -552,7 +577,7 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
         window.addEventListener('load', function() {
           setTimeout(function() {
             window.print();
-          }, 400);
+          }, 350);
         });
       </script>
     </body>
