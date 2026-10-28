@@ -56,7 +56,7 @@ function ForensicDashboardContent() {
   
   const { data: session } = useSession();
   
-  const [safeBrowsingMatches, setSafeBrowsingMatches] = useState<any[]>([]);
+  const safeBrowsingMatches = state.context.safeBrowsingMatches || [];
   const [openSections, setOpenSections] = useState({
     triggers: true,
     links: false,
@@ -74,26 +74,6 @@ function ForensicDashboardContent() {
   const collapseAllSections = () => {
     setOpenSections({ triggers: false, links: false, auth: false });
   };
-
-  useEffect(() => {
-    if (state.value === 'complete_with_xai' && state.context.extractedIndicators) {
-      const { urls, ips } = state.context.extractedIndicators;
-      if (urls?.length || ips?.length) {
-        fetch('/api/safebrowsing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ urls, ips })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.matches) setSafeBrowsingMatches(data.matches);
-        })
-        .catch(console.error);
-      }
-    } else if (state.value === 'idle') {
-      setSafeBrowsingMatches([]);
-    }
-  }, [state.value, state.context.extractedIndicators]);
 
   // Tab management: switch to forensics on complete, or back to input on idle
   useEffect(() => {
@@ -145,7 +125,6 @@ function ForensicDashboardContent() {
     setHoveredVectorId(null);
     setIsEditing(false);
     setDashboardTab('input_graph');
-    setSafeBrowsingMatches([]);
 
     // Drop stale urlInput if it is no longer present in inputValue
     const effectiveUrl = (urlInput && inputValue.includes(urlInput)) ? urlInput : '';

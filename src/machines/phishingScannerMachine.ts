@@ -34,6 +34,7 @@ export type ScannerContext = {
   emailAuth?: EmailAuthResult | null;
   brandResults?: BrandImpersonationResult[];
   rdapResults?: Record<string, any>;
+  safeBrowsingMatches?: any[];
   modelProgress: string;
 };
 
@@ -341,6 +342,38 @@ const runInferenceActor = fromPromise(
     if (heuristics.isTrusted) {
       finalScore = 0; // Trusted sender overrides ML hallucination
     }
+
+    // 5. Query Safe Browsing, OpenPhish, PhishTank, and URLhaus feeds before finishing inference
+    let safeBrowsingMatches: any[] = [];
+    const candidateIps = heuristics.extractedIndicators?.ips || [];
+    if (candidateUrls.length > 0 || candidateIps.length > 0) {
+      try {
+        const sbRes = await fetch('/api/safebrowsing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls: candidateUrls, ips: candidateIps }),
+          signal: AbortSignal.timeout(4500)
+        });
+        if (sbRes.ok) {
+          const sbData = await sbRes.json();
+          if (Array.isArray(sbData.matches)) {
+            safeBrowsingMatches = sbData.matches;
+          }
+        }
+      } catch (e) {
+        console.warn('SafeBrowsing check error:', e);
+      }
+    }
+
+    const hasHardBlacklist = safeBrowsingMatches.some((m: any) =>
+      m.threatType?.includes('NXDOMAIN') ||
+      m.threatType?.includes('URLhaus') ||
+      m.threatType?.includes('OpenPhish') ||
+      m.threatType?.includes('PhishTank')
+    );
+    if (hasHardBlacklist) {
+      finalScore = 1.0;
+    }
     
     const hasSpamTriggers = heuristics.vectors.some(v => 
       (v.id && v.id.includes('spam')) || 
@@ -348,7 +381,7 @@ const runInferenceActor = fromPromise(
     );
     const hasMaliciousUrls = heuristics.vectors.some(v => 
       v.id === 'safe-browsing' || (v.id === 'ml-url' && v.score > 0.6) || (v.id && v.id.startsWith('typosquatting')) || (v.id && v.id.startsWith('rdap-0day'))
-    );
+    ) || safeBrowsingMatches.length > 0;
 
     const isSpam = Boolean(
       (mlVerdict?.spam_match || hasSpamTriggers) &&
@@ -370,7 +403,8 @@ const runInferenceActor = fromPromise(
       extractedIndicators: heuristics.extractedIndicators,
       emailAuth,
       brandResults,
-      rdapResults
+      rdapResults,
+      safeBrowsingMatches
     };
   }
 );
@@ -398,6 +432,7 @@ export const phishingScannerMachine = setup({
     emailAuth: null,
     brandResults: [],
     rdapResults: {},
+    safeBrowsingMatches: [],
     modelProgress: '',
   },
   states: {
@@ -416,6 +451,7 @@ export const phishingScannerMachine = setup({
             emailAuth: null,
             brandResults: [],
             rdapResults: {},
+            safeBrowsingMatches: [],
             obfuscation: { score: 0, flags: [] },
             oracleVerdict: null as any,
             oracleScore: 0,
@@ -434,7 +470,7 @@ export const phishingScannerMachine = setup({
           target: 'inferencing',
           actions: assign({
             tokens: ({ event }) => event.output.tokens,
-            modelProgress: () => 'Семантичний аналіз тексту...',
+            modelProgress: () => 'Комплексний семантичний та інфраструктурний аналіз (ML, DNS, OpenPhish)...',
           }),
         },
         onError: 'idle',
@@ -452,7 +488,7 @@ export const phishingScannerMachine = setup({
         onDone: {
           target: 'rendering_3d',
           actions: assign({
-            modelProgress: () => 'Синтез результатів аналізу...',
+            modelProgress: () => 'Синтез фінальних результатів та XAI графу...',
             oracleVerdict: ({ event }) => event.output.oracle[0].label,
             oracleScore: ({ event }) => event.output.oracle[0].score,
             obfuscation: ({ event }) => event.output.obfuscation,
@@ -462,6 +498,7 @@ export const phishingScannerMachine = setup({
             emailAuth: ({ event }) => event.output.emailAuth,
             brandResults: ({ event }) => event.output.brandResults,
             rdapResults: ({ event }) => event.output.rdapResults,
+            safeBrowsingMatches: ({ event }) => event.output.safeBrowsingMatches || [],
             senderEmail: ({ context, event }) => context.senderEmail || event.output.effectiveSender || '',
             effectiveSender: ({ event }) => event.output.effectiveSender,
             cleanText: ({ event }) => event.output.cleanText,
@@ -478,7 +515,7 @@ export const phishingScannerMachine = setup({
     },
     rendering_3d: {
       after: {
-        800: 'complete_with_xai',
+        700: 'complete_with_xai',
       },
     },
     complete_with_xai: {
@@ -497,6 +534,7 @@ export const phishingScannerMachine = setup({
             emailAuth: null,
             brandResults: [],
             rdapResults: {},
+            safeBrowsingMatches: [],
             obfuscation: { score: 0, flags: [] },
             oracleVerdict: null as any,
             oracleScore: 0,
