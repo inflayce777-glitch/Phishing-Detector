@@ -133,15 +133,55 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
     : '<div style="color: #475569; font-size: 10px; padding: 4px 0;">Ознак підміни відомих фінансових чи поштових брендів не зафіксовано.</div>';
 
   // Format Email Auth
-  const authSummary = data.emailAuth?.hasHeaders
-    ? `
-      <div style="display: flex; gap: 12px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 10px; color: #0f172a; margin-top: 4px;">
-        <div>SPF: <span style="font-weight: 800; color: ${data.emailAuth.spf === 'pass' ? '#166534' : '#dc2626'};">${data.emailAuth.spf || 'None'}</span></div>
-        <div>DKIM: <span style="font-weight: 800; color: ${data.emailAuth.dkim === 'pass' ? '#166534' : '#dc2626'};">${data.emailAuth.dkim || 'None'}</span></div>
-        <div>DMARC: <span style="font-weight: 800; color: ${data.emailAuth.dmarcAlignment === 'aligned' ? '#166534' : '#dc2626'};">${data.emailAuth.dmarcAlignment || 'None'}</span></div>
+  let authSummary = '<div style="color: #64748b; font-size: 9.5px; margin-top: 3px;">Службові поштові заголовки відсутні (аналіз тексту або месенджера).</div>';
+  if (data.emailAuth?.hasHeaders) {
+    const rawSpf = typeof data.emailAuth.spf === 'object' ? data.emailAuth.spf?.status : data.emailAuth.spf;
+    const rawDkim = typeof data.emailAuth.dkim === 'object' ? data.emailAuth.dkim?.status : data.emailAuth.dkim;
+    const rawDmarc = typeof data.emailAuth.dmarc === 'object' ? (data.emailAuth.dmarc?.alignment || data.emailAuth.dmarc?.status) : data.emailAuth.dmarc;
+
+    const spfStatus = (rawSpf || '').toLowerCase();
+    const dkimStatus = (rawDkim || '').toLowerCase();
+    const dmarcStatus = (rawDmarc || '').toLowerCase();
+
+    const isSpfPass = spfStatus === 'pass' || spfStatus === 'dns_active';
+    const isDkimPass = dkimStatus === 'pass' || dkimStatus === 'dns_active';
+    const isDmarcPass = dmarcStatus === 'aligned' || dmarcStatus === 'pass' || dmarcStatus === 'dns_active';
+
+    const spfLabel = isSpfPass ? 'Пройдено' : (spfStatus === 'fail' || spfStatus === 'softfail' ? 'Помилка' : (spfStatus === 'missing' ? 'Відсутній' : 'Не знайдено'));
+    const dkimLabel = isDkimPass ? 'Пройдено' : (dkimStatus === 'fail' ? 'Помилка' : 'Не знайдено');
+    const dmarcLabel = isDmarcPass ? 'Відповідає' : (dmarcStatus === 'fail' || dmarcStatus === 'unaligned' || dmarcStatus === 'mismatched' ? 'Невідповідність' : 'Не налаштовано');
+
+    const spfColor = isSpfPass ? '#166534' : (spfStatus === 'fail' || spfStatus === 'softfail' ? '#991b1b' : '#64748b');
+    const dkimColor = isDkimPass ? '#166534' : (dkimStatus === 'fail' ? '#991b1b' : '#64748b');
+    const dmarcColor = isDmarcPass ? '#166534' : (dmarcStatus === 'fail' || dmarcStatus === 'unaligned' || dmarcStatus === 'mismatched' ? '#991b1b' : '#64748b');
+
+    const spfBg = isSpfPass ? '#f0fdf4' : (spfStatus === 'fail' || spfStatus === 'softfail' ? '#fef2f2' : '#f8fafc');
+    const dkimBg = isDkimPass ? '#f0fdf4' : (dkimStatus === 'fail' ? '#fef2f2' : '#f8fafc');
+    const dmarcBg = isDmarcPass ? '#f0fdf4' : (dmarcStatus === 'fail' || dmarcStatus === 'unaligned' || dmarcStatus === 'mismatched' ? '#fef2f2' : '#f8fafc');
+
+    const spfBorder = isSpfPass ? '#86efac' : (spfStatus === 'fail' || spfStatus === 'softfail' ? '#fca5a5' : '#cbd5e1');
+    const dkimBorder = isDkimPass ? '#86efac' : (dkimStatus === 'fail' ? '#fca5a5' : '#cbd5e1');
+    const dmarcBorder = isDmarcPass ? '#86efac' : (dmarcStatus === 'fail' || dmarcStatus === 'unaligned' || dmarcStatus === 'mismatched' ? '#fca5a5' : '#cbd5e1');
+
+    authSummary = `
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 9px;">
+        <span style="background: ${spfBg}; color: ${spfColor}; border: 1px solid ${spfBorder}; padding: 2px 6px; border-radius: 3px; font-weight: 700;">
+          SPF: ${spfLabel}
+        </span>
+        <span style="background: ${dkimBg}; color: ${dkimColor}; border: 1px solid ${dkimBorder}; padding: 2px 6px; border-radius: 3px; font-weight: 700;">
+          DKIM: ${dkimLabel}
+        </span>
+        <span style="background: ${dmarcBg}; color: ${dmarcColor}; border: 1px solid ${dmarcBorder}; padding: 2px 6px; border-radius: 3px; font-weight: 700;">
+          DMARC: ${dmarcLabel}
+        </span>
       </div>
-    `
-    : '<div style="color: #475569; font-size: 10px; margin-top: 3px;">Службові поштові заголовки відсутні (аналіз тексту або месенджера).</div>';
+      ${data.emailAuth.isSpoofed ? `
+        <div style="color: #991b1b; font-size: 9.5px; font-weight: 700; margin-top: 3px;">
+          ⚠ Спуфінг відправника (RFC FAIL): ${data.emailAuth.spoofingReason || 'сервер не авторизований у DNS'}
+        </div>
+      ` : ''}
+    `;
+  }
 
   // Format XAI Findings as high-contrast structured bullet cards
   const findingsHtml = (data.threatReport?.findings || []).length > 0
