@@ -108,6 +108,7 @@ function ForensicDashboardContent() {
   const handleScan = () => {
     if (!inputValue.trim() && !emailInput.trim() && !urlInput.trim()) return;
     setActiveNode(null);
+    setHoveredVectorId(null);
     setIsEditing(false);
     send({ type: 'START_SCAN', payload: { text: inputValue, senderEmail: emailInput, linkUrl: urlInput } });
   };
@@ -373,39 +374,51 @@ function ForensicDashboardContent() {
               }}
             />
 
-            <section className="fx-grid">
-              <InputPanel
-                appMode={appMode}
-                setAppMode={setAppMode}
-                emailInput={emailInput || state.context.senderEmail || ''}
-                setEmailInput={setEmailInput}
-                urlInput={urlInput}
-                setUrlInput={setUrlInput}
-                inputValue={inputValue}
-                setInputValue={setInputValue}
-                isScanning={isScanning}
-                isOcrLoading={isOcrLoading}
-                onCameraClick={() => setShowUploadModal(true)}
-                onScanClick={isComplete && !isEditing ? () => setIsEditing(true) : handleScan}
-                isEditing={isEditing}
-                isComplete={isComplete}
-                vectors={state.context.vectors}
-                extractedUrls={state.context.extractedIndicators?.urls}
-                extractedIps={state.context.extractedIndicators?.ips}
-                safeBrowsingMatches={safeBrowsingMatches}
-                activeNode={activeNode}
-                setActiveNode={setActiveNode}
-                hoveredVectorId={hoveredVectorId}
-                setHoveredVectorId={setHoveredVectorId}
-                isTrusted={state.context.isTrusted}
-              />
+            <section className={isComplete ? "fx-grid" : "fx-grid-single"}>
+              <div className="w-full min-w-0">
+                <InputPanel
+                  appMode={appMode}
+                  setAppMode={setAppMode}
+                  emailInput={emailInput || state.context.senderEmail || ''}
+                  setEmailInput={setEmailInput}
+                  urlInput={urlInput}
+                  setUrlInput={setUrlInput}
+                  inputValue={inputValue}
+                  setInputValue={setInputValue}
+                  isScanning={isScanning}
+                  isOcrLoading={isOcrLoading}
+                  onCameraClick={() => setShowUploadModal(true)}
+                  onScanClick={isComplete && !isEditing ? () => setIsEditing(true) : handleScan}
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  isComplete={isComplete}
+                  vectors={state.context.vectors}
+                  extractedUrls={state.context.extractedIndicators?.urls}
+                  extractedIps={state.context.extractedIndicators?.ips}
+                  safeBrowsingMatches={safeBrowsingMatches}
+                  activeNode={activeNode}
+                  setActiveNode={setActiveNode}
+                  hoveredVectorId={hoveredVectorId}
+                  setHoveredVectorId={setHoveredVectorId}
+                  isTrusted={state.context.isTrusted}
+                />
+              </div>
 
-              <GraphPanel
-                vectors={vectors}
-                activeNode={activeNode}
-                setActiveNode={setActiveNode}
-                threatLevel={threatLevel}
-              />
+              {isComplete && (
+                <motion.div
+                  initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                  className="w-full min-w-0 h-full flex flex-col"
+                >
+                  <GraphPanel
+                    vectors={vectors}
+                    activeNode={activeNode}
+                    setActiveNode={setActiveNode}
+                    threatLevel={threatLevel}
+                  />
+                </motion.div>
+              )}
             </section>
 
             {isComplete && (

@@ -13,19 +13,7 @@ body {
   overflow-x: hidden;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--fx-bg);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--fx-line);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--fx-cyan);
-}
+
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 @theme {
@@ -58,22 +46,49 @@ body {
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar for Cyber Theme */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Universal Custom Scrollbar for Cyber Theme (Webkit + Firefox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 182, 212, 0.45) rgba(11, 16, 19, 0.7);
 }
-::-webkit-scrollbar-track {
-  background: var(--fx-bg);
-  border-left: 1px solid var(--fx-line);
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--fx-panel);
-  border: 1px solid var(--fx-cyan);
+*::-webkit-scrollbar-track {
+  background: rgba(11, 16, 19, 0.75);
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.35);
+  border: 1px solid rgba(6, 182, 212, 0.5);
   border-radius: 4px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--fx-cyan);
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.75);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 182, 212, 0.45) rgba(11, 16, 19, 0.7);
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(11, 16, 19, 0.75);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.35);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.75);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
 }
 
 .fx-console {
@@ -182,6 +197,13 @@ body {
 .fx-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.03fr) minmax(0, 0.97fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.fx-grid-single {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: stretch;
 }
@@ -408,6 +430,7 @@ body {
 
 @media (max-width: 1024px) {
   .fx-grid,
+  .fx-grid-single,
   .fx-bottom {
     grid-template-columns: 1fr;
   }

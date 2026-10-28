@@ -22,19 +22,18 @@ function CameraRig({ selectedPos }: { selectedPos: THREE.Vector3 | null }) {
   useFrame((state) => {
     if (spawnTime.current === 0) {
       spawnTime.current = state.clock.elapsedTime;
-      // Start camera higher for a swooping effect
-      camera.position.set(0, 12, 12);
+      camera.position.set(0, 10, 12);
     }
     const elapsed = state.clock.elapsedTime - spawnTime.current;
     
     if (elapsed < 1.5 && !selectedPos) {
-      camera.position.lerp(new THREE.Vector3(0, 6, 12), 0.04);
+      camera.position.lerp(new THREE.Vector3(0, 5.5, 11), 0.04);
     } else if (selectedPos && controls) {
       const ctrl = controls as any;
-      ctrl.target.lerp(selectedPos, 0.05);
+      ctrl.target.lerp(selectedPos, 0.06);
       
-      vec.copy(selectedPos).add(new THREE.Vector3(2, 2, 4));
-      camera.position.lerp(vec, 0.05);
+      vec.copy(selectedPos).add(new THREE.Vector3(2.2, 1.8, 3.8));
+      camera.position.lerp(vec, 0.06);
     } else if (!selectedPos && controls) {
       const ctrl = controls as any;
       ctrl.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
@@ -46,7 +45,9 @@ function CameraRig({ selectedPos }: { selectedPos: THREE.Vector3 | null }) {
 function ModelNode({ type, trigger, color, selected, hovered }: { type: string, trigger?: string, color: string, selected: boolean, hovered: boolean }) {
   let modelPath = '/models/data_core.glb';
   
-  if (type !== 'root' && trigger) {
+  if (type === 'shield' || type === 'safe_shield') {
+    modelPath = '/models/cyber_shield.glb';
+  } else if (type !== 'root' && trigger) {
     const tr = trigger.toLowerCase();
     if (tr.includes('терміновість')) modelPath = '/models/malware_urgency.glb';
     else if (tr.includes('авторитет')) modelPath = '/models/malware_authority.glb';
@@ -55,7 +56,7 @@ function ModelNode({ type, trigger, color, selected, hovered }: { type: string, 
     else if (tr.includes('викрадення')) modelPath = '/models/malware_data_extraction.glb';
     else if (tr.includes('цікавість')) modelPath = '/models/malware_curiosity.glb';
     else if (tr.includes('прохання')) modelPath = '/models/malware_sympathy.glb';
-    else modelPath = '/models/malware_payload.glb'; // fallback
+    else modelPath = '/models/malware_payload.glb';
   }
 
   const { scene } = useGLTF(modelPath);
@@ -63,7 +64,6 @@ function ModelNode({ type, trigger, color, selected, hovered }: { type: string, 
 
   useMemo(() => {
     clone.traverse((child) => {
-      // Disable raycasting on the complex model parts
       child.raycast = () => null;
 
       if ((child as THREE.Mesh).isMesh) {
@@ -72,31 +72,31 @@ function ModelNode({ type, trigger, color, selected, hovered }: { type: string, 
           mesh.material = (mesh.material as THREE.Material).clone();
           const mat = mesh.material as THREE.MeshStandardMaterial;
           
-          // Boost emission on hover, but preserve the native Blender color!
           if (mat.emissive && (mat.emissive.r > 0 || mat.emissive.g > 0 || mat.emissive.b > 0)) {
-             mat.emissiveIntensity = selected || hovered ? 8 : 4;
+             mat.emissiveIntensity = selected || hovered ? 9 : 4.5;
           }
           
-          // Ensure it renders nicely
           mat.roughness = 0.2;
-          mat.metalness = 0.8;
+          mat.metalness = 0.85;
         }
       }
     });
   }, [clone, selected, hovered]);
 
-  const scale = selected || hovered ? 1.2 : 0.8;
+  const scale = selected || hovered ? 1.25 : 0.85;
   return <primitive object={clone} scale={[scale, scale, scale]} />;
 }
 
 function ThreatNode({ 
   node, 
   onClick, 
-  selected 
+  selected,
+  isShield
 }: { 
   node: NodeData; 
   onClick: (node: NodeData) => void;
   selected: boolean;
+  isShield?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const modelRef = useRef<THREE.Group>(null);
@@ -109,7 +109,6 @@ function ThreatNode({
     
     // Entrance Animation (1 second)
     if (elapsed < 1.0) {
-      // Easing function (easeOutExpo)
       const t = elapsed === 1.0 ? 1 : 1 - Math.pow(2, -10 * elapsed);
       
       if (groupRef.current) {
@@ -124,8 +123,7 @@ function ThreatNode({
       }
       
       if (modelRef.current) {
-        // Spin fast during entrance
-        modelRef.current.rotation.y = state.clock.elapsedTime * 0.5 + node.position[0] + (1 - t) * 15;
+        modelRef.current.rotation.y = state.clock.elapsedTime * 0.6 + node.position[0] + (1 - t) * 15;
       }
     } else {
       // Idle Animation
@@ -134,14 +132,15 @@ function ThreatNode({
         groupRef.current.scale.setScalar(1);
       }
       if (modelRef.current && !selected) {
-        modelRef.current.rotation.y = state.clock.elapsedTime * 0.5 + node.position[0];
-        modelRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + node.position[2]) * 0.1;
+        modelRef.current.rotation.y = state.clock.elapsedTime * 0.6 + node.position[0];
+        modelRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.6 + node.position[2]) * 0.08;
       }
     }
   });
 
   let nodeType = 'safe';
-  if (node.id === 'root') nodeType = 'root';
+  if (isShield) nodeType = 'shield';
+  else if (node.id === 'root') nodeType = 'root';
   else if (node.score >= 0.5) nodeType = 'danger';
 
   return (
@@ -156,32 +155,33 @@ function ThreatNode({
         <ModelNode type={nodeType} trigger={node.trigger} color={node.color} selected={selected} hovered={hovered} />
       </group>
       
-      {/* Invisible solid sphere to provide a reliable hit area for raycasting 
-          and prevent flickering when hovering over wireframe gaps */}
-      <mesh scale={selected || hovered ? 1.3 : 1.0}>
+      {/* Invisible sphere for reliable raycasting hit area */}
+      <mesh scale={selected || hovered ? 1.4 : 1.1}>
         <sphereGeometry args={[1.0, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
       <Text
-        position={[0, -1.0, 0]}
-        fontSize={0.2}
+        position={[0, -1.05, 0]}
+        fontSize={0.22}
         color={node.color}
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.02}
+        outlineWidth={0.025}
         outlineColor="#0b1013"
       >
-        {node.id === 'root' ? node.trigger.toUpperCase() : `${node.trigger.toUpperCase()} ${(node.score * 100).toFixed(0)}%`}
+        {node.id === 'root' 
+          ? (isShield ? 'СИСТЕМА ЧИСТА: 0 ЗАГРОЗ' : node.trigger.toUpperCase()) 
+          : `${node.trigger.toUpperCase()} ${(node.score * 100).toFixed(0)}%`}
       </Text>
     </group>
   );
 }
 
-function DataParticle({ start, end, color }: { start: [number, number, number], end: [number, number, number], color: string }) {
+function DataParticle({ start, end, color, speedMul = 1 }: { start: [number, number, number], end: [number, number, number], color: string, speedMul?: number }) {
   const ref = useRef<any>(null);
   const offset = useRef(Math.random()); 
-  const speed = useRef(0.4 + Math.random() * 0.4);
+  const speed = useRef((0.45 + Math.random() * 0.5) * speedMul);
 
   useFrame((state, delta) => {
     if (ref.current) {
@@ -195,7 +195,7 @@ function DataParticle({ start, end, color }: { start: [number, number, number], 
 
   return (
     <mesh ref={ref}>
-      <sphereGeometry args={[0.06, 8, 8]} />
+      <sphereGeometry args={[0.07, 8, 8]} />
       <meshBasicMaterial color={color} toneMapped={false} />
     </mesh>
   );
@@ -220,12 +220,11 @@ function ThreatEdge({
     const elapsed = state.clock.elapsedTime - spawnTime.current;
     
     if (lineRef.current && lineRef.current.material) {
-      // Fade in smoothly
       if (elapsed < 1.0) {
-        const opacityTarget = selected ? 0.9 : 0.4;
+        const opacityTarget = selected ? 0.95 : 0.45;
         lineRef.current.material.opacity = Math.max(0, elapsed - 0.2) * opacityTarget;
       } else {
-        lineRef.current.material.opacity = selected ? 0.9 : 0.4;
+        lineRef.current.material.opacity = selected ? 0.95 : 0.45;
       }
     }
   });
@@ -239,10 +238,45 @@ function ThreatEdge({
         lineWidth={selected ? 4 : 2}
         transparent
       />
-      {/* Пакетна передача "даних" вздовж лінії */}
-      <DataParticle start={start} end={end} color={color} />
-      <DataParticle start={start} end={end} color={color} />
-      <DataParticle start={start} end={end} color="#ffffff" />
+      {/* Animated data pulses moving along edge */}
+      <DataParticle start={start} end={end} color={color} speedMul={1.1} />
+      <DataParticle start={start} end={end} color="#ffffff" speedMul={0.9} />
+    </group>
+  );
+}
+
+function RadarPulse({ color = '#00f3ff' }: { color?: string }) {
+  const ringRef1 = useRef<THREE.Mesh>(null);
+  const ringRef2 = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    const t1 = (state.clock.elapsedTime * 0.7) % 2.5;
+    const p1 = t1 / 2.5;
+    if (ringRef1.current) {
+      const scale1 = 1 + p1 * 7;
+      ringRef1.current.scale.set(scale1, scale1, 1);
+      (ringRef1.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (1 - p1) * 0.35);
+    }
+
+    const t2 = ((state.clock.elapsedTime * 0.7) + 1.25) % 2.5;
+    const p2 = t2 / 2.5;
+    if (ringRef2.current) {
+      const scale2 = 1 + p2 * 7;
+      ringRef2.current.scale.set(scale2, scale2, 1);
+      (ringRef2.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (1 - p2) * 0.25);
+    }
+  });
+
+  return (
+    <group position={[0, -1.95, 0]}>
+      <mesh ref={ringRef1} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.9, 1.05, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      <mesh ref={ringRef2} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.9, 1.05, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={0.25} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
@@ -263,32 +297,46 @@ export default function ThreatCanvas({
   vectors,
   onNodeClick,
   riskScore = 0,
-  activeNode
+  activeNode,
+  autoRotate = true
 }: { 
   vectors: any[];
   onNodeClick?: (node: any) => void;
   riskScore?: number;
   activeNode?: any;
+  autoRotate?: boolean;
 }) {
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
 
-
-
-  // Dynamic colors based on risk
   const isHighRisk = riskScore > 60;
-  const bgColor = isHighRisk ? '#1c0909' : '#0b1013';
-  const ambientColor = isHighRisk ? '#ffcccc' : '#ffffff';
-  const directionalColor = isHighRisk ? '#ff4444' : '#ffffff';
-  const gridColor = isHighRisk ? '#ff5252' : '#6ce5dc';
+  const isSafe = riskScore <= 30 && vectors.length === 0;
 
-  const rootNode: NodeData = {
-    id: 'root',
-    position: [0, 0, 0],
-    color: isHighRisk ? '#ff4444' : '#829398',
-    trigger: 'ДЖЕРЕЛО',
-    score: 1,
-    explanation: 'Початкове повідомлення. Натисніть на інші вузли для деталізації ознак.',
-  };
+  const bgColor = isHighRisk ? '#180709' : (isSafe ? '#081412' : '#0b1013');
+  const ambientColor = isHighRisk ? '#ffcccc' : (isSafe ? '#bbf7d0' : '#ffffff');
+  const directionalColor = isHighRisk ? '#ff4444' : (isSafe ? '#34d399' : '#ffffff');
+  const gridColor = isHighRisk ? '#ff5252' : (isSafe ? '#10b981' : '#6ce5dc');
+  const pulseColor = isHighRisk ? '#ff003c' : (isSafe ? '#10b981' : '#00f3ff');
+
+  const rootNode: NodeData = useMemo(() => {
+    if (vectors.length === 0 && !isHighRisk) {
+      return {
+        id: 'root',
+        position: [0, 0, 0],
+        color: '#10b981',
+        trigger: 'ВЕРИФІКОВАНО',
+        score: 0,
+        explanation: 'Система провела повний семантичний, лексичний та інфраструктурний аналіз: аномалій або фішингових векторів не виявлено.',
+      };
+    }
+    return {
+      id: 'root',
+      position: [0, 0, 0],
+      color: isHighRisk ? '#ff4444' : '#829398',
+      trigger: 'ДЖЕРЕЛО',
+      score: 1,
+      explanation: 'Початкове повідомлення. Натисніть на інші вузли для деталізації ознак.',
+    };
+  }, [vectors.length, isHighRisk]);
 
   const childNodes: NodeData[] = useMemo(() => {
     return vectors.map((vec, i) => {
@@ -298,14 +346,14 @@ export default function ThreatCanvas({
         ...vec,
         position: [
           Math.cos(angle) * radius,
-          (Math.random() - 0.5) * 2.5,
+          (Math.sin(i * 1.5)) * 1.2,
           Math.sin(angle) * radius,
         ] as [number, number, number],
       };
     });
   }, [vectors]);
 
-  const allNodes = [rootNode, ...childNodes];
+  const allNodes = useMemo(() => [rootNode, ...childNodes], [rootNode, childNodes]);
 
   useEffect(() => {
     if (!activeNode) {
@@ -315,6 +363,7 @@ export default function ThreatCanvas({
       if (found) setSelectedNode(found);
     }
   }, [activeNode, allNodes]);
+
   const selectedPos = selectedNode ? new THREE.Vector3(...selectedNode.position) : null;
 
   const handlePointerMissed = () => {
@@ -330,20 +379,20 @@ export default function ThreatCanvas({
   return (
     <div style={{ height: '100%', width: '100%', background: 'var(--fx-bg)' }}>
       <Canvas 
-        camera={{ position: [0, 6, 8], fov: 45 }}
+        camera={{ position: [0, 5.5, 9], fov: 45 }}
         onPointerMissed={handlePointerMissed}
       >
         <color attach="background" args={[bgColor]} />
-        <ambientLight intensity={1.5} color={ambientColor} />
-        <directionalLight position={[10, 10, 10]} intensity={3} color={directionalColor} />
-        <directionalLight position={[-10, -10, -10]} intensity={1} color={isHighRisk ? "#ff0000" : "#00f3ff"} />
+        <ambientLight intensity={1.6} color={ambientColor} />
+        <directionalLight position={[10, 12, 10]} intensity={3} color={directionalColor} />
+        <directionalLight position={[-10, -10, -10]} intensity={1.2} color={isHighRisk ? "#ff003c" : (isSafe ? "#10b981" : "#00f3ff")} />
         <Environment preset="city" />
         
         <CameraRig selectedPos={selectedPos} />
 
         <Grid 
           infiniteGrid 
-          fadeDistance={15} 
+          fadeDistance={18} 
           sectionColor={gridColor} 
           cellColor={gridColor} 
           sectionSize={1} 
@@ -352,10 +401,12 @@ export default function ThreatCanvas({
           cellThickness={0.5} 
           sectionThickness={1}
           {...({
-             opacity: isHighRisk ? 0.3 : 0.15,
+             opacity: isHighRisk ? 0.35 : (isSafe ? 0.25 : 0.18),
              transparent: true
           } as any)}
         />
+
+        <RadarPulse color={pulseColor} />
 
         {childNodes.map((node) => (
           <ThreatEdge
@@ -374,20 +425,21 @@ export default function ThreatCanvas({
               node={node} 
               onClick={handleNodeClick}
               selected={selectedNode?.id === node.id}
+              isShield={node.id === 'root' && isSafe}
             />
           ))}
         </Suspense>
 
         <OrbitControls
           makeDefault
-          autoRotate={!selectedNode}
-          autoRotateSpeed={0.8}
+          autoRotate={autoRotate && !selectedNode}
+          autoRotateSpeed={0.9}
           enableDamping
-          dampingFactor={0.05}
+          dampingFactor={0.06}
           minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2.2}
+          maxPolarAngle={Math.PI / 2.15}
           minDistance={3}
-          maxDistance={15}
+          maxDistance={16}
         />
       </Canvas>
     </div>

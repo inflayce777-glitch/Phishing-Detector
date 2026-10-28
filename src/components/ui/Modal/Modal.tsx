@@ -89,7 +89,7 @@ export const Modal: React.FC<ModalProps> = ({
             )}
 
             {/* Body with guaranteed 4-way padding */}
-            <div className="p-6 overflow-y-auto max-h-[calc(85vh-130px)] space-y-4">
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-130px)] space-y-4 custom-scrollbar">
               {children}
             </div>
 

@@ -80,7 +80,7 @@ export const ThreatTemplatePicker: React.FC<ThreatTemplatePickerProps> = ({
           </div>
 
           {/* Category Tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+          <div className="flex gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar">
             {THREAT_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
@@ -100,7 +100,7 @@ export const ThreatTemplatePicker: React.FC<ThreatTemplatePickerProps> = ({
         {/* Master / Detail Split View */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[380px]">
           {/* List of Templates (Left 5 cols) */}
-          <div className="md:col-span-5 overflow-y-auto pr-1 space-y-2 max-h-[380px]">
+          <div className="md:col-span-5 overflow-y-auto pr-1.5 space-y-2 max-h-[380px] custom-scrollbar">
             {filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-zinc-500 border border-zinc-800/80 rounded-lg">
                 Нічого не знайдено за цим запитом.
@@ -144,7 +144,7 @@ export const ThreatTemplatePicker: React.FC<ThreatTemplatePickerProps> = ({
           {/* Template Detail & Preview (Right 7 cols) */}
           <div className="md:col-span-7 bg-zinc-900/30 border border-zinc-800/80 rounded-lg p-4 flex flex-col justify-between overflow-hidden">
             {previewTemplate ? (
-              <div className="space-y-3 overflow-y-auto pr-1">
+              <div className="space-y-3 overflow-y-auto pr-1.5 custom-scrollbar">
                 <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
                   <div>
                     <h4 className="text-sm font-semibold text-white">
@@ -177,7 +177,7 @@ export const ThreatTemplatePicker: React.FC<ThreatTemplatePickerProps> = ({
                   <div className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider mb-1">
                     Текст повідомлення:
                   </div>
-                  <pre className="p-3 bg-zinc-950/80 border border-zinc-800 rounded-md font-mono text-[11px] text-zinc-300 whitespace-pre-wrap max-h-[160px] overflow-y-auto leading-relaxed">
+                  <pre className="p-3 bg-zinc-950/80 border border-zinc-800 rounded-md font-mono text-[11px] text-zinc-300 whitespace-pre-wrap max-h-[160px] overflow-y-auto leading-relaxed custom-scrollbar">
                     {previewTemplate.text}
                   </pre>
                 </div>

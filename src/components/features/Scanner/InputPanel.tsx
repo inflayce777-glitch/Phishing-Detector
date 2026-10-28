@@ -20,6 +20,7 @@ interface InputPanelProps {
   onCameraClick: () => void;
   onScanClick: () => void;
   isEditing: boolean;
+  setIsEditing?: (val: boolean) => void;
   isComplete: boolean;
   vectors?: any[];
   extractedUrls?: string[];
@@ -47,6 +48,7 @@ export const InputPanel = ({
   isScanning, isOcrLoading,
   onCameraClick, onScanClick,
   isEditing,
+  setIsEditing,
   isComplete,
   vectors = [],
   extractedUrls = [],
@@ -66,6 +68,7 @@ export const InputPanel = ({
     setInputValue(template.text);
     if (template.senderEmail) setEmailInput(template.senderEmail);
     if (template.linkUrl) setUrlInput(template.linkUrl);
+    if (setIsEditing) setIsEditing(true);
   };
 
   const isRawEmailCode = /Content-Type:|MIME-Version:/i.test(inputValue);
@@ -203,7 +206,7 @@ export const InputPanel = ({
             </div>
             
             <Button onClick={onScanClick} disabled={!inputValue.trim()}>
-              {isEditing ? 'Оновити аналіз' : 'Почати аналіз'}
+              {isEditing ? 'Оновити аналіз' : (isComplete ? 'Редагувати вхідні дані' : 'Почати аналіз')}
             </Button>
           </div>
         )}
