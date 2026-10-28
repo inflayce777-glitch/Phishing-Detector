@@ -42,7 +42,7 @@ export const Header = ({ children }: HeaderProps) => {
               />
             </svg>
           </div>
-          <div className={styles.title}>Cyber Threat Forensic Analyzer 2.0</div>
+          <div className={styles.title}>Семантичний аналіз загроз</div>
         </Link>
       </div>
 

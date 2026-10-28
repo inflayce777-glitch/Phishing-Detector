@@ -15,8 +15,8 @@ const firaCode = Fira_Code({
 import { AuthProvider } from '../components/AuthProvider';
 
 export const metadata: Metadata = {
-  title: 'Phishing Detector XAI',
-  description: 'AI-powered phishing detection and psychological analysis',
+  title: 'Семантичний аналіз загроз',
+  description: 'Автоматизована експертиза кіберзагроз та соціальної інженерії',
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="uk"
       className={`${manrope.variable} ${firaCode.variable} font-sans h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="h-full flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

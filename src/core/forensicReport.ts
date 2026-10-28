@@ -456,9 +456,9 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
                 <path d="M10 2 17 5v4.8c0 4.1-2.9 6.9-7 8.2-4.1-1.3-7-4.1-7-8.2V5l7-3Z" stroke="#0f172a" stroke-width="1.8" fill="#f8fafc"/>
                 <path d="M6.5 10h2.2l1.2-2.2 1.6 4.4 1-2.2h1" stroke="#dc2626" stroke-width="1.6"/>
               </svg>
-              <span>Cyber Threat Forensic Analyzer 2.0</span>
+              <span>Семантичний аналіз загроз</span>
             </div>
-            <div class="brand-sub">Автоматизована експертиза семантичного аналізу кіберзагроз</div>
+            <div class="brand-sub">Автоматизована експертиза кіберзагроз та соціальної інженерії</div>
           </div>
           <div class="meta-box">
             <div><strong>ІНЦИДЕНТ ID:</strong> ${caseId}</div>
@@ -569,7 +569,7 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
         <!-- Footer -->
         <div class="footer">
           <div>Хеш верифікації звіту: <strong style="color: #0f172a;">SHA256:${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}</strong></div>
-          <div>Створено автоматично ядром Cyber Threat Forensic Analyzer 2.0</div>
+          <div>Створено автоматично ядром «Семантичний аналіз загроз»</div>
         </div>
       </div>
 
