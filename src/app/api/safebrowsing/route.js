@@ -91,70 +91,70 @@ export async function POST(request) {
           hostname = '';
         }
 
-        // 0. Skip scanning for verified trusted infrastructure (150,000 domains database)
-        if (isServerTrustedDomain(hostname || cleanUrl)) {
-          return null;
-        }
-
+        // 0. Verify if the apex domain is a trusted service (e.g. Google, Apple, PrivatBank)
+        const isTrusted = isServerTrustedDomain(hostname || cleanUrl);
         const urlMatches = [];
 
-        // 1. Check for Fake / Reserved / Non-routable TLDs (RFC 2606 / RFC 6761)
-        const fakeTlds = ['.example', '.invalid', '.test', '.localhost', '.local'];
-        const isReservedFake = fakeTlds.some(tld => hostname === tld.slice(1) || hostname.endsWith(tld));
+        // 1. For non-whitelisted domains: perform DNS and ML structure checks
+        if (!isTrusted) {
+          // Check for Fake / Reserved / Non-routable TLDs (RFC 2606 / RFC 6761)
+          const fakeTlds = ['.example', '.invalid', '.test', '.localhost', '.local'];
+          const isReservedFake = fakeTlds.some(tld => hostname === tld.slice(1) || hostname.endsWith(tld));
 
-        if (isReservedFake) {
-          urlMatches.push({
-            threatType: 'ФЕЙКОВИЙ ДОМЕН (RFC 2606 NXDOMAIN)',
-            threat: { url: rawUrl },
-            details: `Доменна зона "${hostname}" є зарезервованою як тестова/неіснуюча. Такий сайт не може існувати в публічному інтернеті.`
-          });
-        } else if (hostname && !hostname.includes('localhost') && !hostname.startsWith('127.')) {
-          // 2. Real DNS Lookup Check (only on syntactically valid public domains with at least 1 dot)
-          const isValidDomainSyntax = hostname.includes('.') && 
-            !hostname.includes('=') && 
-            /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(hostname);
+          if (isReservedFake) {
+            urlMatches.push({
+              threatType: 'ФЕЙКОВИЙ ДОМЕН (RFC 2606 NXDOMAIN)',
+              threat: { url: rawUrl },
+              details: `Доменна зона "${hostname}" є зарезервованою як тестова/неіснуюча. Такий сайт не може існувати в публічному інтернеті.`
+            });
+          } else if (hostname && !hostname.includes('localhost') && !hostname.startsWith('127.')) {
+            // Real DNS Lookup Check (only on syntactically valid public domains with at least 1 dot)
+            const isValidDomainSyntax = hostname.includes('.') && 
+              !hostname.includes('=') && 
+              /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(hostname);
 
-          if (isValidDomainSyntax) {
-            try {
-              await dns.lookup(hostname);
-            } catch (dnsErr) {
-              if (dnsErr.code === 'ENOTFOUND' || dnsErr.code === 'EAI_AGAIN') {
-                urlMatches.push({
-                  threatType: 'НЕДІЙСНИЙ / МЕРТВИЙ ДОМЕН (DNS NXDOMAIN)',
-                  threat: { url: rawUrl },
-                  details: `Домен "${hostname}" не знайдено на глобальних DNS-серверах (він не існує або видалений). Це типовий маркер фейкових адрес.`
-                });
+            if (isValidDomainSyntax) {
+              try {
+                await dns.lookup(hostname);
+              } catch (dnsErr) {
+                if (dnsErr.code === 'ENOTFOUND' || dnsErr.code === 'EAI_AGAIN') {
+                  urlMatches.push({
+                    threatType: 'НЕДІЙСНИЙ / МЕРТВИЙ ДОМЕН (DNS NXDOMAIN)',
+                    threat: { url: rawUrl },
+                    details: `Домен "${hostname}" не знайдено на глобальних DNS-серверах (він не існує або видалений). Це типовий маркер фейкових адрес.`
+                  });
+                }
               }
             }
           }
-        }
 
-        // 3. Query Python ML URL model (Grambeddings 800k trained)
-        try {
-          const mlRes = await fetch(`${PYTHON_BACKEND_URL}/api/analyze`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true'
-            },
-            body: JSON.stringify({ texts: [cleanUrl], urls: [cleanUrl] }),
-            signal: AbortSignal.timeout(1500)
-          });
-          if (mlRes.ok) {
-            const mlData = await mlRes.json();
-            if (mlData.url_verdicts && mlData.url_verdicts.length > 0) {
-              const uVerdict = mlData.url_verdicts[0];
-              if (uVerdict.phishing_probability > 0.5) {
-                urlMatches.push({
-                  threatType: `ML-ФІШИНГОВИЙ URL (${(uVerdict.phishing_probability * 100).toFixed(0)}%)`,
-                  threat: { url: rawUrl },
-                  details: 'Нейромережевий аналізатор структури посилань виявив високу ймовірність фішингу.'
-                });
+          // Query Python ML URL model (Grambeddings 800k trained)
+          try {
+            const mlRes = await fetch(`${PYTHON_BACKEND_URL}/api/analyze`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+              },
+              body: JSON.stringify({ texts: [cleanUrl], urls: [cleanUrl] }),
+              signal: AbortSignal.timeout(1500)
+            });
+            if (mlRes.ok) {
+              const mlData = await mlRes.json();
+              if (mlData.url_verdicts && mlData.url_verdicts.length > 0) {
+                const uVerdict = mlData.url_verdicts[0];
+                if (uVerdict.phishing_probability > 0.5) {
+                  urlMatches.push({
+                    threatType: `ML-ФІШИНГОВИЙ URL (${(uVerdict.phishing_probability * 100).toFixed(0)}%)`,
+                    threat: { url: rawUrl },
+                    details: 'Нейромережевий аналізатор структури посилань виявив високу ймовірність фішингу.'
+                  });
+                }
               }
             }
+          } catch {
+            // Ignore if Python backend is busy
           }
-        } catch {
-          // Ignore if Python backend is busy
         }
 
         // 4. Check OpenPhish Live Community Threat Feed

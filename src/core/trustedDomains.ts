@@ -94,8 +94,20 @@ export const TRUSTED_APEX_DOMAINS = new Set([
   'ukr.net'
 ]);
 
-// Shared hosting / free subdomains where anyone can deploy apps - these must NOT inherit trust from apex!
+// Shared hosting / free subdomains / cloud builders where anyone can deploy apps - these must NEVER inherit trust from apex!
 export const UNTRUSTED_PUBLIC_SUFFIXES = new Set([
+  'square.site',
+  'framer.app',
+  'webflow.io',
+  'canva.site',
+  'wixsite.com',
+  'weebly.com',
+  'sites.google.com',
+  '000webhostapp.com',
+  'myshopify.com',
+  'carrd.co',
+  'surge.sh',
+  'bitballoon.com',
   'workers.dev',
   'pages.dev',
   'firebaseapp.com',
@@ -103,12 +115,19 @@ export const UNTRUSTED_PUBLIC_SUFFIXES = new Set([
   'github.io',
   'gitlab.io',
   'ngrok.io',
+  'ngrok-free.app',
   'herokuapp.com',
   'vercel.app',
   'netlify.app',
   'glitch.me',
   'render.com',
-  'railway.app'
+  'railway.app',
+  'replit.app',
+  'replit.dev',
+  'duckdns.org',
+  'azurewebsites.net',
+  'blob.core.windows.net',
+  's3.amazonaws.com'
 ]);
 
 export function isTrustedDomain(hostnameOrUrl: string): boolean {
@@ -127,17 +146,17 @@ export function isTrustedDomain(hostnameOrUrl: string): boolean {
   // Remove trailing dots or ports
   host = host.split(':')[0].replace(/\.+$/, '');
 
-  // 1. Direct or subdomain match against globally verified infrastructure providers
-  for (const apex of TRUSTED_APEX_DOMAINS) {
-    if (host === apex || host.endsWith('.' + apex)) {
-      return true;
-    }
-  }
-
-  // 2. Reject public suffix / free deployment subdomains from inheriting general whitelist trust
+  // 1. Reject public suffix / free deployment subdomains FIRST
   for (const suffix of UNTRUSTED_PUBLIC_SUFFIXES) {
     if (host === suffix || host.endsWith('.' + suffix)) {
       return false;
+    }
+  }
+
+  // 2. Direct or subdomain match against globally verified infrastructure providers
+  for (const apex of TRUSTED_APEX_DOMAINS) {
+    if (host === apex || host.endsWith('.' + apex)) {
+      return true;
     }
   }
 
