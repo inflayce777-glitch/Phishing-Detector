@@ -7,6 +7,7 @@
  */
 
 import { isTrustedDomain, TRUSTED_APEX_DOMAINS } from './trustedDomains';
+import brandsData from '@/data/protected_brands.json';
 
 export interface ProtectedBrand {
   id: string;
@@ -34,159 +35,8 @@ const MULTI_PART_TLDS = new Set([
   'com.br', 'org.br', 'co.nz', 'org.nz', 'com.tr', 'co.za', 'com.sg'
 ]);
 
-export const PROTECTED_BRANDS: ProtectedBrand[] = [
-  // 1. Ukrainian Banking & Finance
-  {
-    id: 'privatbank',
-    name: 'ПриватБанк (Privat24)',
-    category: 'Банкінг / Фінанси',
-    primaryDomains: ['privatbank.ua', 'privat24.ua', 'pb.ua'],
-    keywords: ['privat', 'privat24', 'privatbank']
-  },
-  {
-    id: 'monobank',
-    name: 'Монобанк (Monobank)',
-    category: 'Банкінг / Фінанси',
-    primaryDomains: ['monobank.ua', 'mono.me'],
-    keywords: ['monobank', 'mono']
-  },
-  {
-    id: 'oschadbank',
-    name: 'Ощадбанк (Oschadbank)',
-    category: 'Банкінг / Фінанси',
-    primaryDomains: ['oschadbank.ua'],
-    keywords: ['oschad', 'oschadbank']
-  },
-  {
-    id: 'raiffeisen',
-    name: 'Райффайзен Банк',
-    category: 'Банкінг / Фінанси',
-    primaryDomains: ['raiffeisen.ua', 'aval.ua'],
-    keywords: ['raiffeisen', 'aval']
-  },
-  {
-    id: 'binance',
-    name: 'Binance',
-    category: 'Банкінг / Фінанси',
-    primaryDomains: ['binance.com', 'binance.info'],
-    keywords: ['binance']
-  },
-  {
-    id: 'paypal',
-    name: 'PayPal',
-    category: 'Банкінг / Фінанси',
-    primaryDomains: ['paypal.com', 'paypal.me'],
-    keywords: ['paypal']
-  },
-
-  // 2. State & Government (Ukraine)
-  {
-    id: 'diia',
-    name: 'Портал Дія (Мінцифра)',
-    category: 'Державні сервіси',
-    primaryDomains: ['diia.gov.ua', 'diiagov.ua', 'e-aid.diia.gov.ua'],
-    keywords: ['diia', 'diya', 'diiagov']
-  },
-  {
-    id: 'eaid',
-    name: 'ЄПідтримка / ЄДопомога',
-    category: 'Державні сервіси',
-    primaryDomains: ['e-aid.diia.gov.ua', 'edopomoga.gov.ua'],
-    keywords: ['epidtrymka', 'edopomoga', 'e-pidtrymka', 'e-aid']
-  },
-  {
-    id: 'mvs',
-    name: 'МВС України',
-    category: 'Державні сервіси',
-    primaryDomains: ['mvs.gov.ua', 'hsc.gov.ua'],
-    keywords: ['mvs', 'hsc-gov']
-  },
-  {
-    id: 'zsu',
-    name: 'Збройні сили України / Оборона',
-    category: 'Оборона / ЗСУ',
-    primaryDomains: ['mil.gov.ua', 'mod.gov.ua', 'zsu.gov.ua', '33polk.army'],
-    keywords: ['milgov', 'zsu', 'landforces']
-  },
-
-  // 3. Logistics & E-Commerce
-  {
-    id: 'novaposhta',
-    name: 'Нова пошта (Nova Post)',
-    category: 'Логістика / Доставка',
-    primaryDomains: ['novaposhta.ua', 'novapost.com', 'npost.page'],
-    keywords: ['novaposhta', 'novapost']
-  },
-  {
-    id: 'ukrposhta',
-    name: 'Укрпошта (Ukrposhta)',
-    category: 'Логістика / Доставка',
-    primaryDomains: ['ukrposhta.ua', 'post.ukrposhta.ua'],
-    keywords: ['ukrposhta']
-  },
-  {
-    id: 'olx',
-    name: 'OLX Україна',
-    category: 'Електронна комерція',
-    primaryDomains: ['olx.ua'],
-    keywords: ['olx']
-  },
-  {
-    id: 'rozetka',
-    name: 'Rozetka',
-    category: 'Електронна комерція',
-    primaryDomains: ['rozetka.com.ua', 'rozetka.ua'],
-    keywords: ['rozetka']
-  },
-
-  // 4. Global Platforms & Infrastructure
-  {
-    id: 'google',
-    name: 'Google',
-    category: 'Глобальні платформи',
-    primaryDomains: [
-      'google.com', 'gmail.com', 'google.com.ua', 'c.gle', 'goo.gl',
-      'gstatic.com', 'googleusercontent.com', 'youtube.com', 'youtu.be'
-    ],
-    keywords: ['google', 'gmail']
-  },
-  {
-    id: 'microsoft',
-    name: 'Microsoft',
-    category: 'Глобальні платформи',
-    primaryDomains: ['microsoft.com', 'live.com', 'outlook.com', 'office.com', 'microsoftonline.com', 'windows.net'],
-    keywords: ['microsoft', 'outlook', 'office365']
-  },
-  {
-    id: 'apple',
-    name: 'Apple',
-    category: 'Глобальні платформи',
-    primaryDomains: ['apple.com', 'icloud.com', 'me.com'],
-    keywords: ['apple', 'icloud']
-  },
-  {
-    id: 'telegram',
-    name: 'Telegram',
-    category: 'Глобальні платформи',
-    primaryDomains: ['telegram.org', 't.me'],
-    keywords: ['telegram', 'tme']
-  },
-  {
-    id: 'meta',
-    name: 'Meta / Facebook / Instagram / WhatsApp',
-    category: 'Глобальні платформи',
-    primaryDomains: ['meta.com', 'facebook.com', 'instagram.com', 'whatsapp.com', 'fb.com'],
-    keywords: ['facebook', 'instagram', 'whatsapp']
-  }
-];
-
-// Keywords commonly combined with brands in Combosquatting attacks
-const PHISHING_COMBOS_KEYWORDS = [
-  'login', 'verify', 'auth', 'support', 'card', 'aid', 'bonus', 'pay', 'payment',
-  'track', 'tracking', 'cabinet', 'secure', 'service', 'confirm', 'help', 'id',
-  'security', 'dopomoga', 'vyplata', 'groshi', 'account', 'check', 'online', 'portal',
-  'update', 'safety', 'access', 'wallet'
-];
+export const PROTECTED_BRANDS: ProtectedBrand[] = brandsData.brands as ProtectedBrand[];
+const PHISHING_COMBOS_KEYWORDS: string[] = brandsData.comboKeywords;
 
 function levenshteinDistance(s1: string, s2: string): number {
   const m = s1.length;

@@ -122,7 +122,7 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
     drivers.push({
       title: 'Глобальні чорні списки загроз (IoC)',
       score: 100,
-      description: 'Посилання або DNS-домен заблоковано базами Google Safe Browsing, URLhaus або виявлено NXDOMAIN.',
+      description: 'Посилання або DNS-домен заблоковано глобальними базами кіберзахисту (Google Safe Browsing, PhishTank, OpenPhish, URLhaus) або виявлено NXDOMAIN.',
       severity: 'critical'
     });
     findings.push({
@@ -130,7 +130,7 @@ export function generateThreatExplanation(params: ThreatExplainerParams): Threat
       category: 'Чорні списки (IoC)',
       severity: 'critical',
       title: 'Блокування глобальними системами безпеки',
-      detail: 'Посилання або домен заблоковано системами кіберзахисту (Google Safe Browsing / URLhaus) або веде на мертвий/підроблений DNS-домен (NXDOMAIN), типовий для фішингових форм.'
+      detail: 'Посилання або домен заблоковано системами кіберзахисту (Google Safe Browsing / PhishTank / OpenPhish / URLhaus) або веде на мертвий/підроблений DNS-домен (NXDOMAIN), типовий для фішингових форм.'
     });
     recommendations.push('Негайно заблокувати цільовий URL на корпоративному брандмауері та DNS-шлюзі.');
   } else if (hasMlUrlThreat) {

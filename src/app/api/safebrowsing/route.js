@@ -6,10 +6,53 @@ import { isServerTrustedDomain } from '@/core/trustedDomainsServer';
 const urlhausCache = new Map();
 const URLHAUS_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
+const phishtankCache = new Map();
+const PHISHTANK_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+let openphishCache = {
+  urls: new Set(),
+  hosts: new Set(),
+  lastFetched: 0
+};
+const OPENPHISH_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
 const abuseIpCache = new Map();
 const ABUSEIP_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000';
+
+async function getOpenPhishFeed() {
+  const now = Date.now();
+  if (openphishCache.lastFetched && (now - openphishCache.lastFetched < OPENPHISH_CACHE_TTL) && openphishCache.urls.size > 0) {
+    return openphishCache;
+  }
+
+  try {
+    const res = await fetch('https://openphish.com/feed.txt', {
+      headers: { 'User-Agent': 'PhishingDetector/2.0' },
+      signal: AbortSignal.timeout(3000)
+    });
+    if (res.ok) {
+      const text = await res.text();
+      const urls = new Set();
+      const hosts = new Set();
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim().toLowerCase();
+        if (trimmed && trimmed.startsWith('http')) {
+          urls.add(trimmed);
+          try {
+            const parsed = new URL(trimmed);
+            hosts.add(parsed.hostname.toLowerCase());
+          } catch {}
+        }
+      }
+      openphishCache = { urls, hosts, lastFetched: now };
+    }
+  } catch {
+    // Retain previous cache if OpenPhish times out
+  }
+  return openphishCache;
+}
 
 export async function POST(request) {
   try {
@@ -114,8 +157,64 @@ export async function POST(request) {
           // Ignore if Python backend is busy
         }
 
-        // 4. Check URLhaus API (Abuse.ch) with in-memory caching
+        // 4. Check OpenPhish Live Community Threat Feed
         const now = Date.now();
+        try {
+          const opData = await getOpenPhishFeed();
+          const lowerUrl = cleanUrl.toLowerCase();
+          const lowerHost = hostname.toLowerCase();
+          if (opData.urls.has(lowerUrl) || (lowerHost && opData.hosts.has(lowerHost))) {
+            urlMatches.push({
+              threatType: 'ФІШИНГОВИЙ ФІД (OpenPhish Community Feed)',
+              threat: { url: rawUrl },
+              details: 'Посилання занесено до активного глобального потоку виявлених фішингових сторінок OpenPhish.'
+            });
+          }
+        } catch {
+          // Ignore OpenPhish errors
+        }
+
+        // 5. Check PhishTank Live Verified Database
+        try {
+          const cachedPt = phishtankCache.get(cleanUrl);
+          if (cachedPt && cachedPt.expiresAt > now) {
+            if (cachedPt.match) {
+              urlMatches.push(cachedPt.match);
+            }
+          } else {
+            const ptParams = new URLSearchParams({
+              url: cleanUrl,
+              format: 'json'
+            });
+            const ptRes = await fetch('https://checkurl.phishtank.com/checkurl/', {
+              method: 'POST',
+              headers: {
+                'User-Agent': 'phishtank/phishing-detector-academic',
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: ptParams.toString(),
+              signal: AbortSignal.timeout(2500)
+            });
+            if (ptRes.ok) {
+              const ptData = await ptRes.json();
+              if (ptData?.results?.in_database && ptData?.results?.valid) {
+                const ptMatch = {
+                  threatType: 'ПІДТВЕРДЖЕНИЙ ФІШИНГ (PhishTank Verified)',
+                  threat: { url: rawUrl },
+                  details: `Посилання верифіковано глобальною базою PhishTank (ID: #${ptData.results.phish_id || 'N/A'}). Виявлено цільову крадіжку облікових записів.`
+                };
+                urlMatches.push(ptMatch);
+                phishtankCache.set(cleanUrl, { match: ptMatch, expiresAt: now + PHISHTANK_CACHE_TTL });
+              } else {
+                phishtankCache.set(cleanUrl, { match: null, expiresAt: now + PHISHTANK_CACHE_TTL });
+              }
+            }
+          }
+        } catch {
+          // Ignore PhishTank timeouts gracefully
+        }
+
+        // 6. Check URLhaus API (Abuse.ch) with in-memory caching
         const cachedUrlhaus = urlhausCache.get(cleanUrl);
         if (cachedUrlhaus && cachedUrlhaus.expiresAt > now) {
           if (cachedUrlhaus.match) {

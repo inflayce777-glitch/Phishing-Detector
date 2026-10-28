@@ -104,7 +104,7 @@ export function generateForensicPdfReport(data: ForensicReportPayload) {
     `).join('')
     : `
       <div style="color: #166534; font-size: 12px; font-weight: 600; padding: 6px 0;">
-        ✓ Усі вилучені посилання перевірено в базах Google Safe Browsing та URLhaus: загроз не знайдено.
+        ✓ Усі вилучені посилання перевірено в базах Google Safe Browsing, PhishTank, OpenPhish та URLhaus: загроз не знайдено.
       </div>
     `;
 

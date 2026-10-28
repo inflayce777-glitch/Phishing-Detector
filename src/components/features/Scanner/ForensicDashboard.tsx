@@ -205,6 +205,8 @@ function ForensicDashboardContent() {
   const hasHardBlacklist = safeBrowsingMatches.some(m => 
     m.threatType.includes('URLhaus') || 
     m.threatType.includes('Safe Browsing') || 
+    m.threatType.includes('PhishTank') || 
+    m.threatType.includes('OpenPhish') || 
     m.threatType.includes('NXDOMAIN') ||
     m.threatType.includes('MALWARE') ||
     m.threatType.includes('SOCIAL_ENGINEERING')

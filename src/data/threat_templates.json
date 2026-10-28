@@ -1,0 +1,203 @@
+{
+  "categories": [
+    {
+      "id": "all",
+      "label": "Усі категорії"
+    },
+    {
+      "id": "banking",
+      "label": "Банківський фішинг"
+    },
+    {
+      "id": "accounts",
+      "label": "Викрадення акаунтів"
+    },
+    {
+      "id": "delivery",
+      "label": "Шахрайство та виплати"
+    },
+    {
+      "id": "blackmail",
+      "label": "Шантаж та вимагання"
+    },
+    {
+      "id": "spam",
+      "label": "Комерційний спам"
+    },
+    {
+      "id": "safe",
+      "label": "Безпечні повідомлення"
+    }
+  ],
+  "templates": [
+    {
+      "id": "privatbank-card-blocked",
+      "title": "ПриватБанк: Блокування картки",
+      "category": "banking",
+      "categoryLabel": "Банківський фішинг",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "email",
+      "senderEmail": "security@privatbank-verify-ua.online",
+      "linkUrl": "https://privat24-card-secure.top/auth",
+      "text": "Від: security@privatbank-verify-ua.online\nТема: Терміново: Ваша картка ПриватБанку заблокована!\n\nШановний клієнте!\nСлужбою безпеки банку зафіксовано несанкціоновану спробу списання коштів на суму 4 850.00 грн о 03:14 з невідомого пристрою.\n\nЗ метою захисту ваших фінансів дію платіжної картки тимчасово обмежено.\n\nДля розблокування картки та підтвердження права власності негайно перейдіть за безпечним посиланням:\n👉 https://privat24-card-secure.top/auth\n\nУвага! Якщо верифікацію не буде пройдено протягом 4 годин, рахунок буде заблоковано на 30 днів згідно з регламентом безпеки НБУ.",
+      "description": "Класичний банківський фішинг із тиском на час, підробленим доменом та залякуванням блокування картки."
+    },
+    {
+      "id": "monobank-cashback-scam",
+      "title": "Monobank: Нарахування кешбеку 5 000 грн",
+      "category": "banking",
+      "categoryLabel": "Банківський фішинг",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "messenger",
+      "senderEmail": "+380931122334",
+      "linkUrl": "https://mono-app-bonus.xyz/claim",
+      "text": "mono | Офіційне сповіщення!\n\nВам нараховано спеціальний кешбек від партнерів банку у розмірі 5 000 грн за лояльність у 2026 році.\n\nОтримати виплату на картку mono можна за прямим посиланням:\n👉 https://mono-app-bonus.xyz/claim\n\nДля зарахування коштів введіть свій номер телефону та PIN-код картки у формі підтвердження. Пропозиція діє до 23:59 сьогодні!",
+      "description": "Шахрайська приманка з обіцянкою легких грошей (фінансова нажива) та крадіжкою PIN-коду."
+    },
+    {
+      "id": "oschadbank-verification",
+      "title": "Ощадбанк: Перевірка ідентифікації",
+      "category": "banking",
+      "categoryLabel": "Банківський фішинг",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "email",
+      "senderEmail": "support@oschad-verification.com",
+      "linkUrl": "https://oschad-id-cabinet.online/login",
+      "text": "Від: support@oschad-verification.com\nТема: Обов'язкова повторна ідентифікація клієнта\n\nШановний клієнте АТ \"Ощадбанк\"!\nВідповідно до постанови Правління НБУ щодо оновлення персональних даних, вам необхідно пройти онлайн-ідентифікацію клієнта.\n\nЯкщо ви не підтвердите персональні дані, операції по вашим рахункам буде призупинено.\n\nПройти верифікацію особистого кабінету:\nhttps://oschad-id-cabinet.online/login\n\nДякуємо за розуміння,\nВаш Ощадбанк.",
+      "description": "Атака з маскуванням під державний банк та посилання на офіційні регуляції."
+    },
+    {
+      "id": "google-security-alert",
+      "title": "Google: Сповіщення про вхід з нового пристрою",
+      "category": "accounts",
+      "categoryLabel": "Викрадення акаунтів",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "email",
+      "senderEmail": "no-reply@accounts-google-security.net",
+      "linkUrl": "https://google-recovery-login.site/confirm",
+      "text": "MIME-Version: 1.0\nFrom: \"Google Security Team\" <no-reply@accounts-google-security.net>\nSubject: Critical security alert: Unauthorized login attempt\nTo: user@gmail.com\n\nSomeone just used your password to try to sign in to your Google Account from an unrecognized device:\nDevice: Linux (Ubuntu 22.04), IP: 185.220.101.5 (Moscow, Russia)\nTime: October 15, 2026, 14:12 UTC\n\nIf this wasn't you, your account is at high risk. Protect your account immediately by changing your password:\nhttps://google-recovery-login.site/confirm\n\nGoogle Security Operations",
+      "description": "Атака типу Credential Harvesting з імітацією реального безпекового листа від Google."
+    },
+    {
+      "id": "microsoft-office-password",
+      "title": "Microsoft 365: Закінчення дії корпоративного пароля",
+      "category": "accounts",
+      "categoryLabel": "Викрадення акаунтів",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "email",
+      "senderEmail": "admin@it-microsoft365-portal.org",
+      "linkUrl": "https://login-microsoftonline.work/keep-password",
+      "text": "From: IT Helpdesk <admin@it-microsoft365-portal.org>\nSubject: Action Required: Your Office 365 password expires in 2 hours\n\nHello team member,\n\nYour Microsoft 365 corporate account password will expire today in approximately 2 hours.\n\nTo keep your current password and avoid service interruption (Outlook, Teams, SharePoint), please verify your identity here:\n👉 https://login-microsoftonline.work/keep-password\n\nFailure to do so will result in an automated account lock until Monday.\n\nIT Support & Infrastructure",
+      "description": "Корпоративний фішинг проти співробітників компаній для зламу робочої пошти."
+    },
+    {
+      "id": "telegram-session-hijack",
+      "title": "Telegram: Підтвердження завершення сеансів",
+      "category": "accounts",
+      "categoryLabel": "Викрадення акаунтів",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "messenger",
+      "senderEmail": "Telegram Security Bot",
+      "linkUrl": "https://tg-web-confirm.space/auth",
+      "text": "🔔 Служба безпеки Telegram\n\nЗафіксовано запит на видалення вашого облікового запису або завершення всіх сесій з IP-адреси 45.154.255.10 (Варшава, Польща).\n\nЯкщо ви не робили цього запиту, скасуйте операцію негайно, перейшовши за посиланням:\n👉 https://tg-web-confirm.space/auth\n\nВведіть код із SMS/додатка, щоб підтвердити, що ви є справжнім власником акаунта.",
+      "description": "Фішинг у месенджері для крадіжки коду авторизації та перехоплення сесії Telegram."
+    },
+    {
+      "id": "diia-epidtrymka-6600",
+      "title": "єПідтримка: Державна допомога 6 600 грн",
+      "category": "delivery",
+      "categoryLabel": "Шахрайство та виплати",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "messenger",
+      "senderEmail": "Дія Повідомлення",
+      "linkUrl": "https://diia-help-gov.top/claim",
+      "text": "Дія: Вам призначено фінансову допомогу!\n\nУ рамках програми підтримки громадян України у 2026 році вам погоджено одноразову виплату у розмірі 6 600 грн.\n\nЩоб вибрати банк для зарахування допомоги, перейдіть у кабінет виплат:\n👉 https://diia-help-gov.top/claim\n\nЗаявку необхідно подати протягом 48 годин з моменту отримання повідомлення.",
+      "description": "Популярна шахрайська схема з використанням бренду «Дія» для викрадення банківських даних."
+    },
+    {
+      "id": "nova-poshta-delivery-fee",
+      "title": "Нова Пошта: Помилка адреси доставки посилки",
+      "category": "delivery",
+      "categoryLabel": "Шахрайство та виплати",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "messenger",
+      "senderEmail": "NovaPoshta",
+      "linkUrl": "https://novaposhta-tracking-ua.info/address",
+      "text": "Нова Пошта: Ваша посилка 20450893411295 не може бути доставлена через неповну адресу отримувача.\n\nБудь ласка, оновіть контактні дані та сплатіть повторну доставку (18.50 грн) за посиланням:\n👉 https://novaposhta-tracking-ua.info/address\n\nБез підтвердження посилка буде утилізована протягом 3 днів.",
+      "description": "Смішинг (SMS-фішинг) від імені кур'єрської служби з мікроплатежем для крадіжки даних банківської картки."
+    },
+    {
+      "id": "sextortion-bitcoin",
+      "title": "Шантаж: Відеофіксація та вимога Bitcoin",
+      "category": "blackmail",
+      "categoryLabel": "Шантаж та вимагання",
+      "threatType": "phishing",
+      "threatTypeLabel": "Критично (фішинг)",
+      "mode": "email",
+      "senderEmail": "hacker-group@darknet-mail.cc",
+      "linkUrl": "https://btc-pay-gateway.link/wallet",
+      "text": "From: system_admin@yourdomain.com\nSubject: You have 48 hours. Your secrets are recorded.\n\nI know your password and I have full access to your operating system.\nA few weeks ago, I infected your device with a remote access trojan through a malicious video player.\n\nI recorded video from your webcam while you were visiting adult websites, alongside your screen recordings.\nI have exported your entire contact list, telegram messages, and email contacts.\n\nIf you don't want this footage sent to all your family, friends, and coworkers, transfer $850 in Bitcoin to my address within 48 hours:\nBTC Wallet: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\n\nConfirmation link: https://btc-pay-gateway.link/wallet\n\nDo not try to contact the police or reply to this email. The clock is ticking.",
+      "description": "Психологічний терор (Sextortion Scam) зі спуфінгом власної адреси користувача та вимогою криптовалюти."
+    },
+    {
+      "id": "b2b-cold-sales-outreach",
+      "title": "B2B Розсилка: Збільшення продажів на 40%",
+      "category": "spam",
+      "categoryLabel": "Комерційний спам",
+      "threatType": "spam",
+      "threatTypeLabel": "Підозріло (спам)",
+      "mode": "email",
+      "senderEmail": "sales@digital-growth-agency-pro.com",
+      "linkUrl": "https://growth-agency.com/meeting",
+      "text": "Доброго дня!\n\nМене звати Олексій, я представляю агентство автоматизації бізнес-процесів.\nМи допомагаємо українським IT та eCommerce компаніям збільшувати потік лідів на 35-50% без збільшення бюджету на рекламу.\n\nУ нас є готові кейси для вашої ніші. Чи могли б ми організувати коротку 15-хвилинну демонстрацію у Zoom на цьому тижні?\n\nОзнайомитися з нашими кейсами або забронювати час у календарі:\n👉 https://growth-agency.com/meeting\n\nЯкщо ця пропозиція не актуальна, просто дайте знати, і ми більше не турбуватимемо вас.\n\nЗ повагою,\nКоманда Digital Growth Agency",
+      "description": "Типовий холодний комерційний лист (B2B Cold Outreach). Не містить шкідливого ПЗ, але є небажаною розсилкою."
+    },
+    {
+      "id": "seo-audit-spam",
+      "title": "Спам: Безкоштовний аудит сайту та SEO просування",
+      "category": "spam",
+      "categoryLabel": "Комерційний спам",
+      "threatType": "spam",
+      "threatTypeLabel": "Підозріло (спам)",
+      "mode": "messenger",
+      "senderEmail": "+380509988776",
+      "linkUrl": "https://seo-boost-expert.top/free-audit",
+      "text": "Вітаю! Помітили кілька критичних помилок на вашому веб-сайті, через які ви втрачаєте до 60% потенційних клієнтів із Google!\n\nПропонуємо провести безкоштовний комплексний аудит та вивести сайт у ТОП-3 за 30 днів із гарантією результату.\n\n👉 Отримати звіт: https://seo-boost-expert.top/free-audit\nЗнижка 25% на оптимізацію до кінця місяця!",
+      "description": "Агресивний рекламний спам із нереалістичними обіцянками та масовою розсилкою."
+    },
+    {
+      "id": "weekly-team-report",
+      "title": "Робочий лист: Щотижневий звіт команди розробки",
+      "category": "safe",
+      "categoryLabel": "Безпечні повідомлення",
+      "threatType": "safe",
+      "threatTypeLabel": "Безпечно",
+      "mode": "email",
+      "senderEmail": "vlad.developer@company.ua",
+      "linkUrl": "https://github.com/inflayce777-glitch/Phishing-Detector",
+      "text": "Від: vlad.developer@company.ua\nТема: Щотижневий звіт команди: рефакторинг та оновлення репозиторію\n\nПривіт усім!\n\nДілюся підсумками нашої роботи за минулий тиждень:\n1. Завершено рефакторинг інтерфейсу сканера та винесено компоненти в окремі модулі.\n2. Впроваджено живу DNS-перевірку протоколів SPF та DMARC на бекенді.\n3. Оновлено базу шаблонів для швидкого тестування різних типів загроз.\n\nКод та документація оновлені в нашому репозиторії:\nhttps://github.com/inflayce777-glitch/Phishing-Detector\n\nНаступна синхронізація запланована на понеділок о 10:00.\n\nГарних вихідних!",
+      "description": "Звичайний робочий лист без жодних маніпулятивних патернів чи підозрілих посилань."
+    },
+    {
+      "id": "google-meet-invitation",
+      "title": "Календар: Запрошення на нараду в Google Meet",
+      "category": "safe",
+      "categoryLabel": "Безпечні повідомлення",
+      "threatType": "safe",
+      "threatTypeLabel": "Безпечно",
+      "mode": "email",
+      "senderEmail": "calendar-notification@google.com",
+      "linkUrl": "https://meet.google.com/abc-defg-hij",
+      "text": "From: Google Calendar <calendar-notification@google.com>\nSubject: Invitation: Project Sync @ Mon Oct 19, 2026 11am - 12pm (EEST)\n\nYou have been invited to the following event:\nProject Sync & Sprint Planning\n\nWhen: Monday Oct 19, 2026 · 11:00 – 12:00 EEST\nWhere: Google Meet\n\nJoining info:\nJoin with Google Meet: https://meet.google.com/abc-defg-hij\n\nOrganizer: team.lead@company.com",
+      "description": "Офіційне системне сповіщення від Google Calendar із перевіреного домену google.com."
+    }
+  ]
+}
